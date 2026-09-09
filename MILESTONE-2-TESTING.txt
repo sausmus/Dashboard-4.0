@@ -1,0 +1,54 @@
+TEACHER DASHBOARD 4.0 — MILESTONE 2
+Unified Google Classroom Student Identity
+
+FILES TO REPLACE
+----------------
+participation-tracker.html
+student-picker.html
+settings.html
+shared/dashboard-data.js
+
+shared/classroom-service.js is included for completeness but is unchanged.
+
+WHAT CHANGED
+------------
+1. Google Classroom students now have a stable Dashboard identity:
+   google:<Google Classroom student ID>
+
+2. Manual/non-Classroom students receive a local identity:
+   local:<period>:<normalized name>
+
+3. Participation records are now keyed by the stable student identity instead
+   of the student's display name.
+
+4. Participation Tracker and Student Picker both use the same identity.
+
+5. Existing Milestone-1 data is migrated automatically on load. If the current
+   roster came from Classroom, old name-keyed participation is matched to the
+   Classroom student and moved to that student's Google ID.
+
+6. Classroom roster refresh behavior:
+   - Same Google ID + same name: points stay.
+   - Same Google ID + changed name: points stay; new name displays.
+   - New Google ID: student appears with 0 points.
+   - Dropped Google ID: student disappears from active roster; old points remain
+     stored historically.
+   - Re-added same Google ID: historical points appear again.
+
+7. Student Picker pool/history/groups now store student IDs. On the first launch
+   after this upgrade, an old name-based Picker pool may reset once to the current
+   roster. Participation totals are NOT reset.
+
+RECOMMENDED TEST
+----------------
+1. Replace the four changed files in GitHub and hard-refresh the Dashboard.
+2. Open Participation Tracker and add 1 point to a student.
+3. Open Student Picker for the same class. Confirm that student's score matches.
+4. Pick that student (or another student) and click + Participation.
+5. Return to Participation Tracker and confirm the point increased there too.
+6. In Settings, connect Classroom and Refresh Roster for that period.
+7. Return to Participation Tracker and confirm existing points are still present.
+8. Try Balanced Picker and Targeted Picker; both should use the same participation
+   values shown by Participation Tracker.
+
+No Google Drive/cloud-sync architecture is used in this milestone.
