@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Settings</title>
+  <link rel="icon" type="image/png" href="bjh-logo.png">
+
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --blue: #1a73e8;
+      --blue-light: #e8f0fe;
+      --green: #188038;
+      --red: #b3261e;
+      --shadow: 0 2px 8px rgba(0,0,0,.08);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    select,
+    input[type="checkbox"] {
+      cursor: pointer;
+    }
+
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+
+    .top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 14px;
+    }
+
+    .settings-bell-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 18px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 42px;
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
+
+    .back-link:hover {
+      background: #f8faff;
+    }
+
+    .page-title {
+      min-width: 0;
+      text-align: right;
+    }
+
+    .page-title h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -.45px;
+    }
+
+    .page-title p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .panel {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 18px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .section-header h2 {
+      margin: 0 0 4px;
+      font-size: 20px;
+    }
+
+    .section-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .class-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .class-row {
+      display: grid;
+      grid-template-columns: auto 130px minmax(180px, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .class-row.is-hidden {
+      background: #f8f9fa;
+    }
+
+    .class-row.is-hidden .period-label,
+    .class-row.is-hidden .student-count {
+      color: #8a8f94;
+    }
+
+    .visibility-check {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--blue);
+    }
+
+    .period-label {
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .class-name-input {
+      width: 100%;
+      min-width: 0;
+      height: 40px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .class-name-input:focus,
+    .roster-select:focus,
+    .roster-textarea:focus {
+      outline: 3px solid rgba(26,115,232,.16);
+      border-color: var(--blue);
+    }
+
+    .student-count {
+      min-width: 82px;
+      text-align: right;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .action-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .button.primary {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .button.secondary {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .button.danger {
+      border: 1px solid #efc7c3;
+      background: #fff;
+      color: var(--red);
+    }
+
+    .button:hover {
+      filter: brightness(.98);
+    }
+
+    .roster-toolbar {
+      display: grid;
+      grid-template-columns: minmax(180px, 280px) 1fr;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .field {
+      min-width: 0;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .roster-select {
+      width: 100%;
+      height: 42px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .roster-summary {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .roster-textarea {
+      width: 100%;
+      min-height: 330px;
+      resize: vertical;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 15px;
+    }
+
+    .roster-help {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .current-class-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 300px) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .status {
+      min-height: 22px;
+      margin-top: 10px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .status.error {
+      color: var(--red);
+    }
+
+    .danger-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .calendar-add-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 260px) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .date-input {
+      width: 100%;
+      height: 42px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .minimum-day-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .minimum-day-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 7px 9px 7px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #f8f9fa;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .minimum-day-chip button {
+      min-height: 0;
+      border: 0;
+      background: transparent;
+      color: var(--red);
+      padding: 0 4px;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .minimum-day-empty {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .reset-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .reset-box {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fafafa;
+    }
+
+    .reset-box strong {
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    .reset-box ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .dashboard-footer {
+      margin-top: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        padding: 20px 14px 36px;
+      }
+
+      .top-row {
+        align-items: flex-start;
+      }
+
+      .page-title h1 {
+        font-size: 23px;
+      }
+
+      .panel {
+        padding: 19px;
+      }
+
+      .class-row {
+        grid-template-columns: auto 1fr auto;
+      }
+
+      .class-name-input {
+        grid-column: 2 / -1;
+      }
+
+      .student-count {
+        grid-column: 3;
+        grid-row: 1;
+      }
+
+      .roster-toolbar,
+      .calendar-add-row,
+      .reset-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .roster-summary {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .top-row {
+        flex-direction: column;
+      }
+
+      .page-title {
+        text-align: left;
+      }
+
+      .class-row {
+        grid-template-columns: auto 1fr;
+      }
+
+      .student-count {
+        grid-column: 2;
+        text-align: left;
+      }
+
+      .class-name-input {
+        grid-column: 1 / -1;
+      }
+
+      .action-row {
+        justify-content: stretch;
+      }
+
+      .action-row .button {
+        flex: 1 1 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+
+    <div class="top-row">
+      <a class="back-link" href="index.html">← Dashboard</a>
+
+      <div class="page-title">
+        <h1>Dashboard Settings</h1>
+        <p>Shared classes and rosters for your Teacher Dashboard.</p>
+      </div>
+    </div>
+
+    <div class="settings-bell-row">
+      <div data-bell-mini></div>
+    </div>
+
+    <section class="panel">
+      <div class="section-header">
+        <div>
+          <h2>My Classes</h2>
+          <p>
+            Choose which periods are active across the dashboard. All seven periods are active by default.
+          </p>
+        </div>
+      </div>
+
+      <div id="classList" class="class-list"></div>
+
+      <div class="action-row">
+        <button id="saveClassesButton" class="button primary" type="button">Save Classes</button>
+      </div>
+
+      <div id="classesStatus" class="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-header">
+        <div>
+          <h2>Master Rosters</h2>
+          <p>
+            Enter student names once here. The Student Picker and future group/seating tools can use these shared rosters.
+          </p>
+        </div>
+      </div>
+
+      <div class="roster-toolbar">
+        <div class="field">
+          <label for="rosterClassSelect">Class</label>
+          <select id="rosterClassSelect" class="roster-select"></select>
+        </div>
+
+        <div id="rosterSummary" class="roster-summary"></div>
+      </div>
+
+      <textarea
+        id="rosterTextarea"
+        class="roster-textarea"
+        spellcheck="false"
+        placeholder="Enter one student name per line..."
+      ></textarea>
+
+      <div class="roster-help">
+        One student per line. Blank lines are ignored, and duplicate names are removed automatically.
+      </div>
+
+      <div class="action-row">
+        <button id="saveRosterButton" class="button primary" type="button">Save Roster</button>
+      </div>
+
+      <div id="rosterStatus" class="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-header">
+        <div>
+          <h2>School Calendar</h2>
+          <p>
+            Add minimum-day dates once and Bell Countdown will select the Minimum Day schedule automatically on those dates. The manual Minimum Day button still remains available everywhere.
+          </p>
+          <p style="margin:8px 0 0; font-size:13px; color:#5f6368;">
+  Need the official dates?
+  <a
+    href="https://www.bousd.us/page/academic-calendar"
+    target="_blank"
+    rel="noopener noreferrer"
+    style="color:#1a73e8; font-weight:700; text-decoration:none;"
+  >
+    View the BOUSD Academic Calendar ↗
+  </a>
+</p>
+        </div>
+      </div>
+
+      <div class="calendar-add-row">
+        <div class="field">
+          <label for="minimumDayDate">Minimum Day Date</label>
+          <input id="minimumDayDate" class="date-input" type="date">
+        </div>
+
+        <button id="addMinimumDayButton" class="button primary" type="button">
+          Add Minimum Day
+        </button>
+      </div>
+
+      <div id="minimumDayList" class="minimum-day-list"></div>
+      <div id="minimumDayEmpty" class="minimum-day-empty"></div>
+      <div id="calendarStatus" class="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-header">
+        <div>
+          <h2>New School Year Reset</h2>
+          <p>
+            Prepare the dashboard for a new group of students without rebuilding your school bell schedules.
+          </p>
+        </div>
+      </div>
+
+      <div class="reset-summary">
+        <div class="reset-box">
+          <strong>The following will be reset</strong>
+          <ul>
+            <li>Master rosters</li>
+            <li>Hidden periods (all seven become visible)</li>
+            <li>Custom period/class names</li>
+            <li>Minimum-day dates</li>
+            <li>Participation records and Participation Tracker undo history</li>
+            <li>Student Picker pools, history, and generated groups</li>
+            <li>Scoreboard championships, scores, competitions, and history</li>
+            <li>Agenda history and saved agenda entries</li>
+          </ul>
+        </div>
+
+        <div class="reset-box">
+          <strong>The following will not be changed when performing a New School Year Reset</strong>
+          <ul>
+            <li>Regular bell schedule</li>
+            <li>Wednesday Late Start schedule</li>
+            <li>Minimum Day bell times</li>
+            <li>Bell alarm sound, Final Bell setting, and custom-warning default</li>
+            <li>Student Picker style/target choices and group-size preferences</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="danger-note">
+        Before anything is erased, the dashboard automatically creates one complete pre-reset backup containing shared Dashboard data plus Scoreboard, Student Picker, Participation Tracker, Agenda, and bell-session state. <strong>Undo Last School Year Reset</strong> restores that most recent backup.
+      </p>
+
+      <div class="action-row">
+        <button id="undoSchoolYearResetButton" class="button secondary" type="button">
+          Undo Last School Year Reset
+        </button>
+        <button id="newSchoolYearResetButton" class="button danger" type="button">
+          New School Year Reset
+        </button>
+      </div>
+
+      <div id="resetStatus" class="status" aria-live="polite"></div>
+    </section>
+
+    <footer class="dashboard-footer">
+      Teacher Dashboard
+    </footer>
+
+  </main>
+
+  <script src="shared/dashboard-data.js"></script>
+  <script src="shared/bell-service.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const classList = document.getElementById("classList");
+      const rosterClassSelect = document.getElementById("rosterClassSelect");
+      const rosterTextarea = document.getElementById("rosterTextarea");
+      const rosterSummary = document.getElementById("rosterSummary");
+
+      const classesStatus = document.getElementById("classesStatus");
+      const rosterStatus = document.getElementById("rosterStatus");
+      const resetStatus = document.getElementById("resetStatus");
+
+      const saveClassesButton = document.getElementById("saveClassesButton");
+      const saveRosterButton = document.getElementById("saveRosterButton");
+      const minimumDayDate = document.getElementById("minimumDayDate");
+      const minimumDayList = document.getElementById("minimumDayList");
+      const minimumDayEmpty = document.getElementById("minimumDayEmpty");
+      const calendarStatus = document.getElementById("calendarStatus");
+      const addMinimumDayButton = document.getElementById("addMinimumDayButton");
+
+      const newSchoolYearResetButton = document.getElementById("newSchoolYearResetButton");
+      const undoSchoolYearResetButton = document.getElementById("undoSchoolYearResetButton");
+
+      function showStatus(element, message, isError = false) {
+        element.textContent = message;
+        element.classList.toggle("error", isError);
+
+        window.clearTimeout(element._clearTimer);
+        element._clearTimer = window.setTimeout(() => {
+          element.textContent = "";
+          element.classList.remove("error");
+        }, 3200);
+      }
+
+      function countRosterLines(text) {
+        const seen = new Set();
+
+        return String(text)
+          .split(/\r?\n/)
+          .map(name => name.trim().replace(/\s+/g, " "))
+          .filter(name => {
+            if (!name) return false;
+
+            const key = name.toLocaleLowerCase();
+            if (seen.has(key)) return false;
+
+            seen.add(key);
+            return true;
+          }).length;
+      }
+
+      function renderClasses() {
+        const classes = DashboardData.getClasses();
+        classList.innerHTML = "";
+
+        for (const item of classes) {
+          const row = document.createElement("div");
+          row.className = "class-row";
+          row.dataset.classId = item.id;
+          row.classList.toggle("is-hidden", !item.active);
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.className = "visibility-check";
+          checkbox.checked = item.active;
+          checkbox.setAttribute("aria-label", `Show ${item.name}`);
+          checkbox.dataset.role = "active";
+
+          checkbox.addEventListener("change", () => {
+            row.classList.toggle("is-hidden", !checkbox.checked);
+          });
+
+          const periodLabel = document.createElement("div");
+          periodLabel.className = "period-label";
+          periodLabel.textContent = `Period ${item.id}`;
+
+          const nameInput = document.createElement("input");
+          nameInput.type = "text";
+          nameInput.className = "class-name-input";
+          nameInput.value = item.name;
+          nameInput.maxLength = 60;
+          nameInput.dataset.role = "name";
+          nameInput.setAttribute("aria-label", `Display name for Period ${item.id}`);
+
+          const count = document.createElement("div");
+          count.className = "student-count";
+          count.textContent = `${item.students.length} student${item.students.length === 1 ? "" : "s"}`;
+
+          row.append(checkbox, periodLabel, nameInput, count);
+          classList.appendChild(row);
+        }
+      }
+
+      function renderSelects(preferredRosterId) {
+        const allClasses = DashboardData.getClasses();
+        const activeClasses = allClasses.filter(item => item.active);
+
+        const previousRosterId =
+          preferredRosterId ||
+          rosterClassSelect.value ||
+          DashboardData.getCurrentClassId() ||
+          "1";
+
+        rosterClassSelect.innerHTML = "";
+
+        for (const item of allClasses) {
+          const option = document.createElement("option");
+          option.value = item.id;
+          option.textContent = item.active ? item.name : `${item.name} (Hidden)`;
+          rosterClassSelect.appendChild(option);
+        }
+
+        if (allClasses.some(item => item.id === previousRosterId)) {
+          rosterClassSelect.value = previousRosterId;
+        }
+
+      }
+
+      function loadSelectedRoster() {
+        const classId = rosterClassSelect.value;
+        const item = DashboardData.getClass(classId);
+
+        if (!item) {
+          rosterTextarea.value = "";
+          rosterSummary.textContent = "";
+          return;
+        }
+
+        rosterTextarea.value = item.students.join("\n");
+        updateRosterSummary();
+      }
+
+      function updateRosterSummary() {
+        const count = countRosterLines(rosterTextarea.value);
+        rosterSummary.textContent = `${count} student${count === 1 ? "" : "s"}`;
+      }
+
+      function saveClasses() {
+        try {
+          const rows = [...classList.querySelectorAll(".class-row")];
+
+          for (const row of rows) {
+            const id = row.dataset.classId;
+            const active = row.querySelector('[data-role="active"]').checked;
+            const name = row.querySelector('[data-role="name"]').value.trim();
+
+            DashboardData.updateClass(id, {
+              active,
+              name: name || `Period ${id}`
+            });
+          }
+
+          renderClasses();
+          renderSelects(rosterClassSelect.value);
+          loadSelectedRoster();
+
+          showStatus(classesStatus, "Classes saved.");
+        } catch (error) {
+          console.error(error);
+          showStatus(classesStatus, "Classes could not be saved.", true);
+        }
+      }
+
+      function saveRoster() {
+        try {
+          const classId = rosterClassSelect.value;
+          const students = rosterTextarea.value.split(/\r?\n/);
+
+          DashboardData.saveRoster(classId, students);
+
+          renderClasses();
+          renderSelects(classId);
+          loadSelectedRoster();
+
+          showStatus(rosterStatus, "Roster saved.");
+        } catch (error) {
+          console.error(error);
+          showStatus(rosterStatus, "Roster could not be saved.", true);
+        }
+      }
+
+      function formatMinimumDayDate(key) {
+        const [year, month, day] = key.split("-").map(Number);
+        return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        });
+      }
+
+      function renderMinimumDays() {
+        const dates = DashboardData.getMinimumDayDates();
+        minimumDayList.innerHTML = "";
+        minimumDayEmpty.textContent = dates.length
+          ? ""
+          : "No minimum days have been added yet.";
+
+        dates.forEach(key => {
+          const chip = document.createElement("div");
+          chip.className = "minimum-day-chip";
+
+          const label = document.createElement("span");
+          label.textContent = formatMinimumDayDate(key);
+
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.setAttribute("aria-label", `Remove ${formatMinimumDayDate(key)}`);
+          remove.textContent = "×";
+          remove.addEventListener("click", () => {
+            DashboardData.removeMinimumDayDate(key);
+            renderMinimumDays();
+            showStatus(calendarStatus, "Minimum day removed.");
+          });
+
+          chip.append(label, remove);
+          minimumDayList.appendChild(chip);
+        });
+      }
+
+      function addMinimumDay() {
+        try {
+          if (!minimumDayDate.value) {
+            showStatus(calendarStatus, "Choose a date first.", true);
+            return;
+          }
+
+          DashboardData.addMinimumDayDate(minimumDayDate.value);
+          minimumDayDate.value = "";
+          renderMinimumDays();
+          showStatus(calendarStatus, "Minimum day added.");
+        } catch (error) {
+          console.error(error);
+          showStatus(calendarStatus, error.message || "Minimum day could not be added.", true);
+        }
+      }
+
+      function refreshAllSettingsUI(preferredRosterId = "1") {
+        renderClasses();
+        renderSelects(preferredRosterId);
+        loadSelectedRoster();
+        renderMinimumDays();
+        undoSchoolYearResetButton.disabled =
+          !DashboardData.canUndoNewSchoolYearReset();
+      }
+
+      function newSchoolYearReset() {
+        const confirmed = window.confirm(
+          "Start a new school year?\n\nThis will clear rosters, hidden periods, custom class names, minimum-day dates, participation records, Student Picker school-year data, and all Scoreboard championship/results data.\n\nYour bell schedules, bell sound preferences, Agenda history, and Student Picker preference choices will not be changed.\n\nA complete pre-reset backup will be created first."
+        );
+
+        if (!confirmed) return;
+
+        try {
+          DashboardData.newSchoolYearReset();
+
+          refreshAllSettingsUI("1");
+          showStatus(
+            resetStatus,
+            "New school year reset complete. Scoreboard and student-year data were backed up and cleared."
+          );
+        } catch (error) {
+          console.error(error);
+          showStatus(
+            resetStatus,
+            error.message || "School-year reset could not be completed.",
+            true
+          );
+        }
+      }
+
+      function undoSchoolYearReset() {
+        const confirmed = window.confirm(
+          "Restore the complete Dashboard state from immediately before the last school-year reset? This includes shared data, Scoreboard results, Student Picker data, Participation Tracker state, and the bell session."
+        );
+
+        if (!confirmed) return;
+
+        try {
+          DashboardData.undoNewSchoolYearReset();
+          refreshAllSettingsUI();
+          showStatus(resetStatus, "Last school-year reset undone. Dashboard and app data restored.");
+        } catch (error) {
+          console.error(error);
+          showStatus(resetStatus, error.message || "Reset backup could not be restored.", true);
+        }
+      }
+
+      rosterClassSelect.addEventListener("change", loadSelectedRoster);
+      rosterTextarea.addEventListener("input", updateRosterSummary);
+
+      saveClassesButton.addEventListener("click", saveClasses);
+      saveRosterButton.addEventListener("click", saveRoster);
+      addMinimumDayButton.addEventListener("click", addMinimumDay);
+      newSchoolYearResetButton.addEventListener("click", newSchoolYearReset);
+      undoSchoolYearResetButton.addEventListener("click", undoSchoolYearReset);
+
+      refreshAllSettingsUI();
+    })();
+  </script>
+</body>
+</html>
