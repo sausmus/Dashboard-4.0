@@ -1,0 +1,77 @@
+DASHBOARD 4.0 — MILESTONES 4, 5 & 6
+=====================================
+
+WHAT CHANGED
+------------
+Milestone 4 — Settings UX
+- Settings opens as five clean cards:
+  Classes & Rosters
+  Google Classroom
+  Participation Grades
+  School Calendar
+  School Year
+- Only the selected section opens.
+- Google OAuth Client ID / Cloud setup is now inside "Advanced Google Setup".
+- Cards show live summaries (active classes, mappings, participation assignment status, etc.).
+
+Milestone 5 — Grade Sync Polish
+- Participation Grades now shows:
+  assignments ready
+  last grade sync
+  students last synced
+  issues from the last sync
+- Each assignment shows Draft/Published status badges.
+- Per-class last sync records successful grades, missing submissions, and failed grade writes.
+- Preview Grades now verifies Classroom submissions when connected and flags:
+  Ready
+  Assignment not ready
+  Missing Classroom submission
+  No Google student ID
+  Could not check submission
+- Grades remain DRAFT grades only. Nothing is returned/finalized automatically.
+
+Milestone 6 — Smarter Roster Refresh
+- Roster rows show last refresh time.
+- Refresh detects changes by stable Google student ID:
+  added students
+  removed students
+  renamed students
+- Same Google ID + different display name is treated as a rename, not a new student.
+- "Import All Mapped Rosters" becomes "Refresh All Mapped Rosters" after initial import.
+- Refresh-all gives aggregate change counts.
+- Existing participation remains tied to stable Google IDs.
+
+FILES TO REPLACE
+----------------
+settings.html
+shared/dashboard-data.js
+
+The following are included for convenience and are unchanged from Milestone 3.1:
+shared/classroom-service.js
+participation-tracker.html
+student-picker.html
+
+NO NEW GOOGLE CLOUD SCOPE IS REQUIRED FOR MILESTONES 4-6.
+Your existing Milestone 3.1 Classroom scopes are sufficient.
+
+RECOMMENDED TEST
+----------------
+1. Upload settings.html and shared/dashboard-data.js.
+2. Open Settings. Confirm only the five section cards appear initially.
+3. Open each card and make sure its controls still work.
+4. Connect Google Classroom.
+5. Open Google Classroom and refresh one unchanged roster.
+   Expected: "no roster changes."
+6. If possible, test after a Classroom roster change.
+   Expected: added/removed/renamed counts are shown.
+7. Open Participation Grades and Preview Grades.
+   Expected: each student shows a sync readiness status.
+8. Push Draft Grades.
+   Expected: overview cards update with last sync time, students synced, and any issues.
+9. Verify Student Picker ↔ Participation still share points normally.
+
+SAFETY
+------
+Roster refresh does not reset participation totals for existing Google IDs.
+Dropped students leave the active roster but their historical participation data remains associated with their stable ID.
+Grade sync still writes draftGrade only.
