@@ -1,0 +1,27 @@
+Dashboard 4.0 — Combined Classes & Rosters UX
+
+WHAT CHANGED
+- Google Classroom and Classes & Rosters are now one Settings card.
+- Every class has a Roster Source selector:
+    Google Classroom
+    Manual Roster
+- Google-backed classes show course mapping, student count, roster refresh status, and Refresh Roster.
+- Manual classes show student count and an Edit Roster button.
+- Class display name and visibility are edited directly on the same card.
+- Participation Grade Sync includes only active Google Classroom-backed classes.
+- Switching a class to Manual does not delete its saved Classroom mapping/assignment.
+- Switching it back to Google Classroom restores the last imported Classroom roster; Refresh Roster then brings it current.
+
+RECOMMENDED TEST
+1. Open Settings. Confirm there are now four main cards.
+2. Open Classes & Rosters.
+3. Confirm your existing Classroom-imported periods automatically show Google Classroom as their roster source.
+4. Confirm each period shows the correct mapped course and student count.
+5. Refresh one Classroom roster and verify the normal added/removed/renamed summary still works.
+6. Pick a test period and switch Roster Source to Manual Roster.
+7. Use Edit Roster, add a fake test name, and Save Manual Roster.
+8. Open Participation Tracker / Student Picker and confirm the manual roster appears normally.
+9. Return to Settings > Participation Grades. Confirm that manual period is excluded from Classroom assignment/grade sync.
+10. Switch the test period back to Google Classroom. Confirm the last imported Google roster returns, then click Refresh Roster.
+11. Confirm existing participation points for Google students are preserved.
+12. Confirm Participation Grade Preview / Push Draft Grades still works for the Google Classroom-backed classes.
