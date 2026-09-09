@@ -1,0 +1,62 @@
+TEACHER DASHBOARD 4.0 — MILESTONE 3
+PARTICIPATION → GOOGLE CLASSROOM DRAFT GRADE SYNC
+
+WHAT THIS BUILD ADDS
+--------------------
+• Participation Grade Sync settings are stored separately for each grading term.
+• Any Dashboard participation goal can scale to any Classroom assignment value.
+• Example: 4/5 participation with a 20-point assignment becomes 16/20.
+• Participation above the goal is capped at full credit.
+• Whole-number rounding is on by default and can be turned off.
+• The Dashboard creates its own Participation coursework in each mapped Classroom.
+• Assignments are DRAFT by default while testing, so students do not see them.
+• The Dashboard previews all calculated grades before syncing.
+• "Push Draft Grades" writes only draftGrade. It does NOT return assignments or finalize grades.
+
+IMPORTANT GOOGLE CLOUD CHANGE
+-----------------------------
+Your OAuth app previously used only read-only Classroom scopes.
+Before testing Milestone 3, add this scope in:
+
+Google Auth Platform → Data Access → Add or remove scopes
+
+https://www.googleapis.com/auth/classroom.coursework.students
+
+Keep the existing scopes:
+https://www.googleapis.com/auth/classroom.courses.readonly
+https://www.googleapis.com/auth/classroom.rosters.readonly
+
+Then reconnect Google Classroom from Dashboard Settings. Google should ask for the new permission.
+If the OAuth app is still in Testing, make sure your school account remains listed as a Test user.
+
+WHY THE DASHBOARD CREATES ITS OWN ASSIGNMENT
+--------------------------------------------
+Google only lets an OAuth/Cloud project modify grades for coursework associated with that same Developer Console project. For that reason, the Dashboard cannot reliably grade an ordinary assignment you created manually in Classroom. The Dashboard creates and remembers its own Participation assignment for each mapped class.
+
+SAFE FIRST TEST
+---------------
+1. Upload/replace the files from this package.
+2. In Google Cloud, add classroom.coursework.students as described above.
+3. Open Dashboard Settings and reconnect Google Classroom.
+4. In Participation Grade Sync:
+   • Term: Quarter 1
+   • Assignment title: Participation — Quarter 1
+   • Assignment points: 20
+   • Round to nearest whole point: checked
+   • Publish assignments immediately: UNCHECKED
+5. Click Save Grade Settings.
+6. Click Create / Update Assignments.
+   • Teacher-only DRAFT Participation assignments will be created in each mapped Classroom.
+7. Click Preview Grades.
+   • Verify examples such as 4/5 → 16/20.
+8. Click Push Draft Grades.
+   • Confirm the prompt.
+   • The Dashboard writes draft grades to the Dashboard-created assignments.
+9. When you are ready for students to see the assignment, check "Publish assignments immediately" and click Create / Update Assignments again.
+
+NOTES
+-----
+• A published assignment cannot safely be "unpublished" by this Dashboard. Once an assignment is published, the app keeps it published.
+• If you change the Classroom assignment point value after creating the assignments, click Create / Update Assignments before pushing grades again.
+• Each grading term stores its own assignment settings and Classroom assignment IDs.
+• Roster refreshes continue to preserve participation because grades and participation are tied to stable Google student IDs.
