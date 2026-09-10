@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Grader</title>
+  <link rel="icon" type="image/png" href="bjh-logo.png">
+  <style>
+    :root {
+      --bg:#f4f6f8;
+      --card:#fff;
+      --text:#202124;
+      --muted:#5f6368;
+      --border:#dadce0;
+      --blue:#1a73e8;
+      --shadow:0 2px 8px rgba(0,0,0,.08);
+    }
+    * { box-sizing:border-box; }
+    html, body {
+      margin:0;
+      width:100%;
+      min-height:100%;
+      font-family:Arial,Helvetica,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    body {
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    button { font:inherit; cursor:pointer; }
+    .topbar {
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      align-items:center;
+      gap:14px;
+      min-height:78px;
+      padding:12px 18px;
+      background:#fff;
+      border-bottom:1px solid var(--border);
+      box-shadow:0 1px 4px rgba(0,0,0,.06);
+      position:relative;
+      z-index:3;
+    }
+    .left, .right { display:flex; align-items:center; gap:9px; }
+    .right { justify-content:flex-end; }
+    .back, .button {
+      min-height:40px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:8px 13px;
+      background:#fff;
+      color:var(--text);
+      font-size:13px;
+      font-weight:700;
+      text-decoration:none;
+    }
+    .back { color:var(--blue); }
+    .back:hover, .button:hover { background:#f8faff; }
+    .brand {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      min-width:0;
+      white-space:nowrap;
+    }
+    .brand img { width:44px; height:44px; object-fit:contain; }
+    .brand img.right-logo { transform:scaleX(-1); }
+    .brand h1 { margin:0; font-size:22px; letter-spacing:-.35px; }
+    .frame-wrap {
+      position:relative;
+      flex:1;
+      min-height:calc(100vh - 78px);
+      background:var(--bg);
+    }
+    iframe {
+      width:100%;
+      height:calc(100vh - 78px);
+      border:0;
+      background:var(--bg);
+      display:block;
+    }
+    .loading {
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:var(--bg);
+      color:var(--muted);
+      font-size:14px;
+      font-weight:700;
+      z-index:1;
+      pointer-events:none;
+    }
+    .loading.hidden { display:none; }
+    .frame-fallback {
+      position:absolute;
+      right:16px;
+      bottom:16px;
+      z-index:2;
+      max-width:420px;
+      padding:9px 11px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:rgba(255,255,255,.96);
+      box-shadow:var(--shadow);
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.4;
+    }
+    .frame-fallback a {
+      color:var(--blue);
+      font-weight:800;
+      text-decoration:none;
+    }
+    @media(max-width:760px) {
+      .topbar {
+        grid-template-columns:auto 1fr auto;
+        min-height:66px;
+        padding:9px 10px;
+      }
+      .brand img { display:none; }
+      .brand h1 { font-size:18px; }
+      .hide-mobile { display:none; }
+      iframe { height:calc(100vh - 66px); }
+      .frame-wrap { min-height:calc(100vh - 66px); }
+      .frame-fallback { left:10px; right:10px; bottom:10px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="left">
+      <a class="back" href="index.html">← <span class="hide-mobile">Dashboard</span></a>
+    </div>
+
+    <div class="brand">
+      <img src="bjh-logo.png" alt="BJH Bobcat">
+      <h1>AI Grader</h1>
+      <img src="bjh-logo.png" class="right-logo" alt="BJH Bobcat">
+    </div>
+
+    <div class="right">
+      <button id="openStandaloneButton" class="button" type="button">
+        <span class="hide-mobile">Open Standalone </span>↗
+      </button>
+    </div>
+  </header>
+
+  <main class="frame-wrap">
+    <div id="loading" class="loading">Loading AI Grader…</div>
+    <iframe
+      id="graderFrame"
+      title="Teacher Dashboard AI Grader"
+      src="https://script.google.com/macros/s/AKfycbxYdcqElFJbk7qof2BwZX3p0QrNVy7Dx1pWRfES2apFvcAAca4oQTJxEVAGQSTuIk2A/exec"
+      allow="clipboard-read; clipboard-write"
+    ></iframe>
+
+    <div class="frame-fallback">
+      If Google sign-in or Apps Script prevents embedding,
+      <a id="fallbackLink" href="https://script.google.com/macros/s/AKfycbxYdcqElFJbk7qof2BwZX3p0QrNVy7Dx1pWRfES2apFvcAAca4oQTJxEVAGQSTuIk2A/exec" target="_blank" rel="noopener noreferrer">open the AI Grader in a new tab</a>.
+      Reminders can only appear over the grader while it is running inside this Dashboard page.
+    </div>
+  </main>
+
+  <script src="shared/dashboard-data.js"></script>
+  <script src="shared/bell-service.js"></script>
+  <script src="shared/reminder-service.js"></script>
+
+  <script>
+  (() => {
+    'use strict';
+
+    const GRADER_URL = 'https://script.google.com/macros/s/AKfycbxYdcqElFJbk7qof2BwZX3p0QrNVy7Dx1pWRfES2apFvcAAca4oQTJxEVAGQSTuIk2A/exec';
+    const frame = document.getElementById('graderFrame');
+    const loading = document.getElementById('loading');
+    const openStandaloneButton = document.getElementById('openStandaloneButton');
+
+    frame.addEventListener('load', () => {
+      loading.classList.add('hidden');
+    });
+
+    openStandaloneButton.addEventListener('click', () => {
+      window.open(GRADER_URL, '_blank', 'noopener');
+    });
+  })();
+  </script>
+</body>
+</html>
