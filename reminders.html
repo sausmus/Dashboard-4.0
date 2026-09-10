@@ -734,63 +734,74 @@
     });
   }
 
+  function reminderScheduleKey() {
+    const dateValue = dateInput.value || formatDateInput(defaultReminderDate());
+    const [year, month, day] = dateValue.split("-").map(Number);
+    const selectedDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+    const todayKey = ReminderService.dateKey();
+
+    // For today, the BellService snapshot is authoritative so this dropdown
+    // immediately follows the same global schedule override as Bell Countdown.
+    if (dateValue === todayKey) {
+      const snapshot = BellService.getSnapshot();
+      if (["regular", "lateStart", "minimum"].includes(snapshot?.scheduleKey)) {
+        return snapshot.scheduleKey;
+      }
+    }
+
+    try {
+      if (DashboardData.isMinimumDayDate(selectedDate)) return "minimum";
+    } catch (error) {}
+
+    return selectedDate.getDay() === 3 ? "lateStart" : "regular";
+  }
+
   function buildPeriods() {
     const previous = periodSelect.value;
     const classes = DashboardData.getClasses({ activeOnly: true });
     const preferred = DashboardData.getCurrentClassId();
+    const classMap = new Map(classes.map(item => [String(item.id), item]));
+    const scheduleKey = reminderScheduleKey();
+    const schedule = DashboardData.getBellSchedule(scheduleKey) || [];
+
     periodSelect.innerHTML = "";
 
-    const classGroup = document.createElement("optgroup");
-    classGroup.label = "Classes";
+    // Mirror the global bell schedule exactly instead of grouping classes
+    // and breaks separately. Example: P1, P2, Snack, P3, P4, P5, Lunch, P6, P7.
+    schedule.forEach(entry => {
+      const entryName = String(entry?.name || "").trim();
+      if (!entryName) return;
 
-    classes.forEach(item => {
-      const option = document.createElement("option");
-      option.value = `class:${item.id}`;
-      option.textContent = item.name;
-      classGroup.appendChild(option);
+      const periodMatch = entryName.match(/^Period\s+(\d+)$/i);
+
+      if (periodMatch) {
+        const classId = periodMatch[1];
+        const classInfo = classMap.get(classId);
+        if (!classInfo) return;
+
+        const option = document.createElement("option");
+        option.value = `class:${classId}`;
+        option.textContent = classInfo.name;
+        periodSelect.appendChild(option);
+        return;
+      }
+
+      if (/^(Snack|Lunch)$/i.test(entryName)) {
+        const option = document.createElement("option");
+        option.value = `entry:${entryName}`;
+        option.textContent = entryName;
+        periodSelect.appendChild(option);
+      }
     });
-
-    periodSelect.appendChild(classGroup);
-
-    const schedules = DashboardData.getBellSchedules?.() || {};
-    const hasSnack = Object.values(schedules).some(schedule =>
-      Array.isArray(schedule) &&
-      schedule.some(entry => String(entry?.name || "").toLowerCase() === "snack")
-    );
-    const hasLunch = Object.values(schedules).some(schedule =>
-      Array.isArray(schedule) &&
-      schedule.some(entry => String(entry?.name || "").toLowerCase() === "lunch")
-    );
-
-    if (hasSnack || hasLunch) {
-      const breakGroup = document.createElement("optgroup");
-      breakGroup.label = "Breaks";
-
-      if (hasSnack) {
-        const snack = document.createElement("option");
-        snack.value = "entry:Snack";
-        snack.textContent = "Snack";
-        breakGroup.appendChild(snack);
-      }
-
-      if (hasLunch) {
-        const lunch = document.createElement("option");
-        lunch.value = "entry:Lunch";
-        lunch.textContent = "Lunch";
-        breakGroup.appendChild(lunch);
-      }
-
-      periodSelect.appendChild(breakGroup);
-    }
 
     const allValues = [...periodSelect.options].map(option => option.value);
 
     if (allValues.includes(previous)) {
       periodSelect.value = previous;
-    } else if (classes.some(item => item.id === preferred)) {
+    } else if (allValues.includes(`class:${preferred}`)) {
       periodSelect.value = `class:${preferred}`;
-    } else if (classes.length) {
-      periodSelect.value = `class:${classes[0].id}`;
+    } else if (periodSelect.options.length) {
+      periodSelect.selectedIndex = 0;
     }
   }
 
@@ -1188,7 +1199,10 @@
     updateTimingPreview();
   });
 
-  dateInput.addEventListener("change", updateTimingPreview);
+  dateInput.addEventListener("change", () => {
+    buildPeriods();
+    updateTimingPreview();
+  });
 
   studentInput.addEventListener("input", () => {
     renderSuggestions();
@@ -1231,6 +1245,7 @@
 
   scheduleMode.addEventListener("change", () => {
     BellService.setScheduleMode(scheduleMode.value);
+    buildPeriods();
     renderSchedule();
     showToast(`${BellService.getSnapshot().scheduleLabel} schedule selected`);
   });
@@ -1250,10 +1265,13 @@
     renderReminders();
     updateTimingPreview();
   });
-  window.addEventListener(BellService.changeEvent, renderSchedule);
+  window.addEventListener(BellService.changeEvent, () => {
+    buildPeriods();
+    renderSchedule();
+  });
 
-  buildPeriods();
   dateInput.value = formatDateInput(defaultReminderDate());
+  buildPeriods();
   renderSchedule();
   updateTimingPreview();
   renderReminders();
