@@ -2362,8 +2362,8 @@
         if (!dateText) return { dueDate: null, dueTime: null };
 
         const timeText = String(dueTimeValue ?? "23:59").trim() || "23:59";
-        const dateMatch = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(dateText);
-        const timeMatch = /^(\\d{2}):(\\d{2})$/.exec(timeText);
+        const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateText);
+        const timeMatch = /^(\d{2}):(\d{2})$/.exec(timeText);
         if (!dateMatch || !timeMatch) {
           throw new Error("Choose a valid due date and time.");
         }
