@@ -443,7 +443,7 @@ function detectInitialPeriod(){
   const match=entry.match(/^Period\\s+(\\d+)$/i);
   return match?Math.max(1,Math.min(7,Number(match[1]))):1
 }
-function updateLabels(){selectedDateTitle.textContent=formatLongDate(selectedDate);const data=getDayData();agendaHeading.textContent=data.shared?"Agenda • All Active Periods":`Agenda • ${getClassDisplayName(selectedPeriod)}`}
+function updateLabels(){selectedDateTitle.textContent=formatLongDate(selectedDate);const data=getDayData();agendaHeading.textContent=data.shared?"Agenda • All Periods":`Agenda • ${getClassDisplayName(selectedPeriod)}`}
 
 agendaEditor.addEventListener("focus",()=>activeEditor=agendaEditor);
 homeworkEditor.addEventListener("focus",()=>activeEditor=homeworkEditor);
