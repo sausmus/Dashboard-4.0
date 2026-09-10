@@ -1314,9 +1314,9 @@
     <section class="panel settings-detail-panel" id="participationGradeSyncPanel" data-settings-group="participation">
       <div class="section-header">
         <div>
-          <h2>Participation Grade Sync</h2>
+          <h2>Google Classroom Participation Assignment</h2>
           <p>
-            Set the participation goal and Classroom assignment once, then use <strong>Sync Grades to Classroom</strong> whenever you want to update student progress. Students do not need to attach work, but they must open the published assignment and click <strong>Turn In</strong> once before Classroom can accept a grade from the Dashboard.
+            Create the Google Classroom assignment for participation once, then use <strong>Sync Grades to Classroom</strong> whenever you want to update student progress. Students do not need to attach work, but they must open the published assignment and click <strong>Turn In</strong> once before Classroom can accept a grade from the Dashboard.
           </p>
         </div>
       </div>
@@ -1327,10 +1327,6 @@
           <select id="gradeSyncTermSelect" class="roster-select"></select>
         </div>
 
-        <div class="field">
-          <label for="gradeSyncGoal">Points needed for full participation credit</label>
-          <input id="gradeSyncGoal" class="oauth-client-input" type="number" min="1" max="20" step="1" value="5">
-        </div>
 
         <div class="field">
           <label for="gradeSyncTitle">Classroom Assignment Title</label>
@@ -1583,7 +1579,6 @@
       const classroomStatus = document.getElementById("classroomStatus");
 
       const gradeSyncTermSelect = document.getElementById("gradeSyncTermSelect");
-      const gradeSyncGoal = document.getElementById("gradeSyncGoal");
       const gradeSyncTitle = document.getElementById("gradeSyncTitle");
       const gradeSyncPoints = document.getElementById("gradeSyncPoints");
       const gradeSyncTopicSelect = document.getElementById("gradeSyncTopicSelect");
@@ -2461,7 +2456,7 @@
       }
 
       function updateGradeSyncExplainerFromInputs() {
-        const goal = Math.max(1, Math.min(20, Math.floor(Number(gradeSyncGoal.value) || DashboardData.getParticipationGoal(gradeSyncTermId))));
+        const goal = DashboardData.getParticipationGoal(gradeSyncTermId);
         const termLabel = getParticipationTermLabel(gradeSyncTermId);
         const assignmentPoints = Math.max(1, Math.floor(Number(gradeSyncPoints.value) || 20));
         const roundWhole = gradeSyncRoundWhole.checked;
@@ -2492,7 +2487,6 @@
         const mappings = DashboardData.getClassroomMappings();
         const mappedClasses = getGoogleGradeClasses();
 
-        gradeSyncGoal.value = goal;
         gradeSyncTitle.value = settings.title;
         gradeSyncPoints.value = settings.assignmentPoints;
         gradeSyncRoundWhole.checked = settings.roundWhole;
@@ -2638,8 +2632,6 @@
           const dueDate = gradeSyncDueDate.value.trim();
           const dueTime = gradeSyncDueTime.value.trim() || "23:59";
 
-          const participationGoal = Math.max(1, Math.min(20, Math.floor(Number(gradeSyncGoal.value) || 5)));
-          DashboardData.setParticipationGoal(gradeSyncTermId, participationGoal);
 
           DashboardData.setParticipationGradeSyncSettings(gradeSyncTermId, {
             title,
@@ -3419,7 +3411,6 @@
         gradeSyncTermId = gradeSyncTermSelect.value;
         renderGradeSync();
       });
-      gradeSyncGoal.addEventListener("input", updateGradeSyncExplainerFromInputs);
       gradeSyncPoints.addEventListener("input", updateGradeSyncExplainerFromInputs);
       gradeSyncTopicSelect.addEventListener("change", () => {
         updateNewTopicVisibility();
