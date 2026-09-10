@@ -1,0 +1,19 @@
+Teacher Dashboard 4.0 — Reminder Utility Update
+
+Changes in this build:
+1. Student autocomplete searches all active period rosters, regardless of the reminder timing period.
+   - Suggestions show the student's class underneath the name.
+   - The selected Period controls only when the reminder fires.
+   - Stable student identity is retained even when the student comes from a different period.
+2. Replaced the 10-minutes-before-class-ends creation option with Custom Reminder.
+   - Choose 1–60 minutes before class ends.
+   - Previously saved 10-minute reminders remain supported.
+3. Restored Reminder Privacy:
+   - Normal: alert details show immediately.
+   - Private: student/reminder details stay hidden until Show is pressed.
+   - Private reminder cards in the Reminder utility are also hidden until Show is pressed.
+4. Restored Clear Completed.
+   - Clears completed (Done) reminders only.
+   - Active reminders are not affected.
+
+Only reminders.html and shared/reminder-service.js were functionally changed.
