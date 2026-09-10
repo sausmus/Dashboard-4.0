@@ -1,3 +1,82 @@
+Dashboard-4.0-main(1).zip
+Zip Archive
+I already like it, so let's fully integrate it into the latest dashboard. I'll give you the whole zip, and you recode just the ones that need to be changed and add the new reminder utility.
+
+Please code for the following changes to the Reminder utility:
+
+Autocomplete should search all active periods, not just the period selected for the reminder.
+
+It also shows the student’s class underneath their name in the suggestion list, which helps if two students have similar or identical names.
+
+The selected period still controls when the reminder fires; it no longer limits the name search.
+2. Replace the 10-minute-before-class-ends button with a custom reminder
+3. I'm not seeing the Reminder Privacy settings "Private" and Normal" that were in the standalone version
+4. I'm also not seeing the "Show" or "Clear Completed" buttons that were in the standalone app
+
+Done — all four Reminder changes are now integrated into the latest Dashboard build.
+
+Download the full updated Dashboard 4.0 repo
+
+If you only want the changed Reminder page:
+
+Download updated reminders.html
+
+And the shared reminder engine:
+
+Download updated shared/reminder-service.js
+
+The Reminder utility now has:
+
+All-period student autocomplete
+Searches every active roster.
+Shows the student’s class underneath their name.
+The selected Period only determines when the reminder fires.
+I also fixed the underlying identity tracking so a Period 2 student can correctly be attached to a reminder scheduled during Period 5.
+Custom Reminder
+Replaces the old 10 minutes before class ends button.
+Selecting it reveals:
+[#] minutes before class ends
+Supports 1–60 minutes.
+Your previously saved 10-minute reminders will still work.
+Reminder Privacy
+Normal — student and reminder details appear immediately.
+Private — details are hidden until you press Show.
+Private reminders are hidden both in the Reminder list and when the alert fires, which should be especially useful with your projector.
+Show
+Appears for Private reminders.
+Reveals the student/reminder details when you’re ready.
+Clear Completed
+Restored at the top of Your Reminders.
+Deletes reminders marked Done.
+Does not affect pending/snoozed reminders.
+
+I also ran syntax checks across the full repo and tested custom timing, cross-period student identity, privacy storage, old 10-minute-reminder compatibility, and Clear Completed.
+
+Only reminders.html and shared/reminder-service.js changed functionally, but the ZIP is the complete repo, so you can replace the current repository contents with it.
+
+reminders-updated.html
+HTML
+reminder-service-updated.js
+Code
+fantastic. works great. I am noticing that the "New Competition" button isn't working on the Scoreboard app, neither the one on top or the bottom of the app
+
+Fixed. The Scoreboard itself hadn’t changed—the regression came from the new shared Reminder Service being loaded before Scoreboard finished initializing.
+
+I changed two things:
+
+moved reminder-service.js to load after the Scoreboard initializes
+made both New Competition buttons explicit type="button" controls
+
+That preserves Reminder alerts on the Scoreboard page while keeping them from interfering with the competition modal.
+
+Download the full updated Dashboard 4.0 repo
+
+Or, if you only want to replace the one changed file:
+
+Download fixed scoreboard.html
+
+Only scoreboard.html changed.
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -269,7 +348,7 @@
         <button class="button small" id="restoreButton">Restore</button>
         <input type="file" id="restoreFile" accept=".json" hidden>
         <button class="button small" id="dashboardSettingsButton">Dashboard Settings</button>
-        <button class="button small" id="newCompetitionButton">New Competition</button>
+        <button class="button small" id="newCompetitionButton" type="button">New Competition</button>
         <button class="button small primary" id="presentButton">Show Standings</button>
       </div>
     </div>
@@ -332,7 +411,7 @@
           <div class="card-title">Recent Competitions</div>
           <div class="card-subtitle">Game results and awarded points are stored inside the selected championship.</div>
         </div>
-        <button class="button small" id="newCompetitionButton2">New Competition</button>
+        <button class="button small" id="newCompetitionButton2" type="button">New Competition</button>
       </div>
       <div class="competition-list" id="competitionList"></div>
     </div>
@@ -393,7 +472,6 @@
 
 <script src="shared/dashboard-data.js"></script>
 <script src="shared/bell-service.js"></script>
-  <script src="shared/reminder-service.js"></script>
 <script>
 /* =========================================================
    CLASS CHAMPIONSHIP
@@ -1238,5 +1316,8 @@ function initialize(){
 
 initialize();
 </script>
+<script src="shared/reminder-service.js"></script>
 </body>
 </html>
+scoreboard-fixed.html
+HTML
