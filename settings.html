@@ -1290,7 +1290,7 @@
         <div>
           <h2>Participation Grade Sync</h2>
           <p>
-            Create a Participation assignment for each Google Classroom-backed class and push the Dashboard's current participation totals as draft grades. Manual-roster classes keep working normally in Participation and Picker, but are not included in Classroom grade sync.
+            Create a Participation assignment for each Google Classroom-backed class and push the Dashboard's current participation totals as draft grades. Students do not need to attach work, but Google Classroom requires them to open the published assignment and click <strong>Turn In</strong> once before the API can set a grade. Manual-roster classes keep working normally in Participation and Picker, but are not included in Classroom grade sync.
           </p>
         </div>
       </div>
@@ -1370,7 +1370,7 @@
       </div>
 
       <div class="classroom-help">
-        Dashboard-created assignments are used because Google only allows this OAuth project to edit grades on coursework created by the same Google Cloud project. Synced grades are saved as <strong>draft grades</strong>; this button does not return assignments or publish final grades.
+        Dashboard-created assignments are used because Google only allows this OAuth project to edit grades on coursework created by the same Google Cloud project. Synced grades are saved as <strong>draft grades</strong>; this button does not return assignments or publish final grades. Students whose submission has not yet been turned in are skipped and reported instead of causing the sync to fail.
       </div>
 
       <div id="gradeSyncStatus" class="status" aria-live="polite"></div>
@@ -2428,7 +2428,9 @@
           `For ${termLabel}, a ${examplePoints}/${goal} becomes ${exampleGrade}/${assignmentPoints}. ` +
           `Scores at or above ${goal}/${goal} receive full credit${roundWhole ? ", and grades are rounded to the nearest whole point" : ""}. ` +
           `${topicName ? `Topic: ${topicName}. ` : "No topic. "}${dueText}. ` +
-          `${gradeSyncPublishAssignments.checked ? "Assignments will be published to students." : "Assignments will stay as teacher-only drafts while testing."}`;
+          `${gradeSyncPublishAssignments.checked
+            ? "Assignments will be published to students. Students must click Turn In once before their draft grade can sync."
+            : "New assignments will stay as teacher-only drafts while testing. Existing published assignments remain published."}`;
       }
 
       function renderGradeSync() {
@@ -2600,7 +2602,7 @@
       }
 
       function participationAssignmentDescription(termLabel) {
-        return `No student submission is required. This assignment records ${termLabel} participation credit synced from Teacher Dashboard.`;
+        return `This assignment records ${termLabel} participation credit synced from Teacher Dashboard. No work or attachment is required. Please open this assignment and click Turn In once so your participation grade can be synced.`;
       }
 
       async function createOrUpdateGradeAssignments() {
@@ -2644,21 +2646,27 @@
 
             if (canReuse) {
               try {
-                const desiredState = previous.state === "PUBLISHED"
-                  ? "PUBLISHED"
-                  : (settings.publishAssignments ? "PUBLISHED" : "DRAFT");
+                const updates = {
+                  title: settings.title,
+                  description: participationAssignmentDescription(termLabel),
+                  maxPoints: settings.assignmentPoints,
+                  topicId: topic?.id || "",
+                  dueDate: dueFields.dueDate,
+                  dueTime: dueFields.dueTime
+                };
+
+                // Never PATCH an existing assignment with state=DRAFT.
+                // Classroom permits DRAFT -> PUBLISHED, but not DRAFT -> DRAFT
+                // (or PUBLISHED -> DRAFT). If the publish option is checked,
+                // explicitly request PUBLISHED; otherwise leave state untouched.
+                if (settings.publishAssignments) {
+                  updates.state = "PUBLISHED";
+                }
 
                 courseWork = await ClassroomService.updateCourseWork(
                   mapping.courseId,
                   previous.courseWorkId,
-                  {
-                    title: settings.title,
-                    maxPoints: settings.assignmentPoints,
-                    state: desiredState,
-                    topicId: topic?.id || "",
-                    dueDate: dueFields.dueDate,
-                    dueTime: dueFields.dueTime
-                  }
+                  updates
                 );
                 updated += 1;
               } catch (error) {
@@ -2793,20 +2801,32 @@
             statusCell.textContent = "Assignment not ready";
             statusCell.style.color = "#b06000";
             issueCount += 1;
+          } else if (item.assignment.state !== "PUBLISHED") {
+            statusCell.textContent = "Publish assignment first";
+            statusCell.style.color = "#b06000";
+            issueCount += 1;
           } else if (!ClassroomService.isConnected()) {
             statusCell.textContent = "Reconnect to verify";
           } else {
             const submissions = submissionsByClass.get(item.classId);
+            const submission = submissions?.get(item.student.googleId);
+
             if (submissions === null) {
               statusCell.textContent = "Could not check submission";
               statusCell.style.color = "#b3261e";
               issueCount += 1;
-            } else if (!submissions?.has(item.student.googleId)) {
+            } else if (!submission) {
               statusCell.textContent = "Missing Classroom submission";
               statusCell.style.color = "#b3261e";
               issueCount += 1;
+            } else if (!["TURNED_IN", "RETURNED"].includes(submission.state)) {
+              statusCell.textContent = "Waiting for Turn In";
+              statusCell.style.color = "#b06000";
+              issueCount += 1;
             } else {
-              statusCell.textContent = "Ready";
+              statusCell.textContent = submission.state === "RETURNED"
+                ? "Ready (returned; draft only)"
+                : "Ready";
               statusCell.style.color = "#188038";
               readyCount += 1;
             }
@@ -2866,6 +2886,19 @@
           return;
         }
 
+        const draftAssignments = classIds.filter(classId =>
+          settings.assignments?.[classId]?.state !== "PUBLISHED"
+        );
+
+        if (draftAssignments.length) {
+          showStatus(
+            gradeSyncStatus,
+            "Publish the Participation assignments first so students can open them and click Turn In. Google Classroom requires a student submission to be turned in before the API can set its grade. Check ‘Publish assignments immediately’ and run Create / Update Assignments, or publish the drafts in Classroom.",
+            true
+          );
+          return;
+        }
+
         const previewRows = collectGradePreview().filter(item => item.student.eligible);
         if (!previewRows.length) {
           showStatus(gradeSyncStatus, "No Classroom-linked students are available to sync.", true);
@@ -2874,13 +2907,14 @@
 
         const confirmed = window.confirm(
           `Push ${termLabel} participation as draft grades for ${previewRows.length} students?\n\n` +
-          `Grades will be scaled to ${settings.assignmentPoints} points and will remain drafts in Google Classroom.`
+          `Grades will be scaled to ${settings.assignmentPoints} points and will remain drafts in Google Classroom. Students who have not clicked Turn In yet will be skipped.`
         );
         if (!confirmed) return;
 
         pushDraftGradesButton.disabled = true;
         const failures = [];
         const missingSubmissions = [];
+        const waitingForTurnIn = [];
         let syncedStudents = 0;
 
         for (let index = 0; index < classIds.length; index += 1) {
@@ -2892,6 +2926,7 @@
             .filter(student => student.eligible);
           let classSynced = 0;
           let classMissing = 0;
+          let classWaitingForTurnIn = 0;
           let classFailed = 0;
 
           gradeSyncStatus.textContent = `Syncing ${classInfo?.name || `Period ${classId}`} (${index + 1} of ${classIds.length})…`;
@@ -2912,6 +2947,13 @@
                 missingSubmissions.push(`${classInfo?.name || `Period ${classId}`}: ${student.name}`);
                 return;
               }
+
+              if (!["TURNED_IN", "RETURNED"].includes(submission.state)) {
+                classWaitingForTurnIn += 1;
+                waitingForTurnIn.push(`${classInfo?.name || `Period ${classId}`}: ${student.name}`);
+                return;
+              }
+
               jobs.push({ student, submission });
             });
 
@@ -2934,7 +2976,7 @@
 
             DashboardData.markParticipationGradeSynced(classId, gradeSyncTermId, {
               syncedCount: classSynced,
-              missingSubmissionCount: classMissing,
+              missingSubmissionCount: classMissing + classWaitingForTurnIn,
               failedCount: classFailed,
               at: new Date().toISOString()
             });
@@ -2953,11 +2995,18 @@
 
         renderGradeSync();
 
-        if (failures.length || missingSubmissions.length) {
+        if (failures.length || missingSubmissions.length || waitingForTurnIn.length) {
           const parts = [`${syncedStudents} draft grades synced.`];
-          if (failures.length) parts.push(`Class errors: ${failures.join(" | ")}.`);
-          if (missingSubmissions.length) parts.push(`${missingSubmissions.length} students had no matching Classroom submission.`);
-          showStatus(gradeSyncStatus, parts.join(" "), true);
+          if (waitingForTurnIn.length) {
+            parts.push(`${waitingForTurnIn.length} student${waitingForTurnIn.length === 1 ? " is" : "s are"} waiting for a first Turn In and were skipped.`);
+          }
+          if (missingSubmissions.length) {
+            parts.push(`${missingSubmissions.length} students had no matching Classroom submission.`);
+          }
+          if (failures.length) {
+            parts.push(`Errors: ${failures.join(" | ")}.`);
+          }
+          showStatus(gradeSyncStatus, parts.join(" "), failures.length > 0);
         } else {
           showStatus(gradeSyncStatus, `${syncedStudents} draft grades synced to Google Classroom.`);
         }
