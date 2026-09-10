@@ -566,7 +566,7 @@
 
     <div class="form-grid">
       <div>
-        <label class="field-label" for="reminderPeriod">Period</label>
+        <label class="field-label" for="reminderPeriod">Period / Break</label>
         <select id="reminderPeriod"></select>
       </div>
 
@@ -735,20 +735,90 @@
   }
 
   function buildPeriods() {
+    const previous = periodSelect.value;
     const classes = DashboardData.getClasses({ activeOnly: true });
     const preferred = DashboardData.getCurrentClassId();
     periodSelect.innerHTML = "";
 
+    const classGroup = document.createElement("optgroup");
+    classGroup.label = "Classes";
+
     classes.forEach(item => {
       const option = document.createElement("option");
-      option.value = item.id;
+      option.value = `class:${item.id}`;
       option.textContent = item.name;
-      periodSelect.appendChild(option);
+      classGroup.appendChild(option);
     });
 
-    if (classes.some(item => item.id === preferred)) {
-      periodSelect.value = preferred;
+    periodSelect.appendChild(classGroup);
+
+    const schedules = DashboardData.getBellSchedules?.() || {};
+    const hasSnack = Object.values(schedules).some(schedule =>
+      Array.isArray(schedule) &&
+      schedule.some(entry => String(entry?.name || "").toLowerCase() === "snack")
+    );
+    const hasLunch = Object.values(schedules).some(schedule =>
+      Array.isArray(schedule) &&
+      schedule.some(entry => String(entry?.name || "").toLowerCase() === "lunch")
+    );
+
+    if (hasSnack || hasLunch) {
+      const breakGroup = document.createElement("optgroup");
+      breakGroup.label = "Breaks";
+
+      if (hasSnack) {
+        const snack = document.createElement("option");
+        snack.value = "entry:Snack";
+        snack.textContent = "Snack";
+        breakGroup.appendChild(snack);
+      }
+
+      if (hasLunch) {
+        const lunch = document.createElement("option");
+        lunch.value = "entry:Lunch";
+        lunch.textContent = "Lunch";
+        breakGroup.appendChild(lunch);
+      }
+
+      periodSelect.appendChild(breakGroup);
     }
+
+    const allValues = [...periodSelect.options].map(option => option.value);
+
+    if (allValues.includes(previous)) {
+      periodSelect.value = previous;
+    } else if (classes.some(item => item.id === preferred)) {
+      periodSelect.value = `class:${preferred}`;
+    } else if (classes.length) {
+      periodSelect.value = `class:${classes[0].id}`;
+    }
+  }
+
+  function selectedTarget() {
+    const value = String(periodSelect.value || "");
+
+    if (value.startsWith("entry:")) {
+      const entryName = value.slice("entry:".length);
+      return {
+        classId: "",
+        entryName,
+        label: entryName,
+        isBreak: true
+      };
+    }
+
+    const classId = value.startsWith("class:")
+      ? value.slice("class:".length)
+      : value;
+
+    const classInfo = DashboardData.getClass(classId);
+
+    return {
+      classId,
+      entryName: "",
+      label: classInfo?.name || `Period ${classId}`,
+      isBreak: false
+    };
   }
 
   function allStudents() {
@@ -756,9 +826,28 @@
     const students = [];
 
     classes.forEach(classInfo => {
-      DashboardData.getStudents(classInfo.id).forEach(student => {
+      let roster = [];
+
+      if (typeof DashboardData.getStudents === "function") {
+        roster = DashboardData.getStudents(classInfo.id) || [];
+      } else if (typeof DashboardData.getClassroomStudents === "function") {
+        roster = DashboardData.getClassroomStudents(classInfo.id) || [];
+      } else if (typeof DashboardData.getRoster === "function") {
+        roster = (DashboardData.getRoster(classInfo.id) || []).map((name, index) => ({
+          id: `manual-${classInfo.id}-${index}`,
+          name: typeof name === "string" ? name : name?.name || ""
+        }));
+      }
+
+      roster.forEach((student, index) => {
+        const normalized = typeof student === "string"
+          ? { id: `manual-${classInfo.id}-${index}`, name: student }
+          : student;
+
+        if (!normalized?.name) return;
+
         students.push({
-          ...student,
+          ...normalized,
           rosterClassId: classInfo.id,
           rosterClassName: classInfo.name || `Period ${classInfo.id}`
         });
@@ -785,7 +874,10 @@
       (!selectedStudentClassId || String(item.rosterClassId) === String(selectedStudentClassId))
     );
     if (!student) return;
-    matchNote.textContent = `Matched to ${student.name} · ${student.rosterClassName}. Reminder timing will use ${DashboardData.getClass(periodSelect.value)?.name || `Period ${periodSelect.value}`}.`;
+
+    const target = selectedTarget();
+    matchNote.textContent =
+      `Matched to ${student.name} · ${student.rosterClassName}. Reminder timing will use ${target.label}.`;
   }
 
   function chooseStudent(student) {
@@ -886,13 +978,33 @@
   }
 
   function updateTimingControls() {
+    const target = selectedTarget();
     customTimingRow.classList.toggle("visible", selectedTiming() === "custom");
+
+    const copy = customTimingRow.querySelector(".custom-timing-copy");
+    if (copy) {
+      copy.textContent = target.isBreak
+        ? `minutes before ${target.label} ends`
+        : "minutes before class ends";
+    }
+
+    document.querySelector('input[name="timing"][value="start"] + span').textContent =
+      target.isBreak ? `Start of ${target.label}` : "Start of class";
+
+    document.querySelector('input[name="timing"][value="after5"] + span').textContent =
+      target.isBreak ? `5 minutes into ${target.label}` : "5 minutes into class";
+
+    document.querySelector('input[name="timing"][value="before5"] + span').textContent =
+      target.isBreak ? `5 minutes before ${target.label} ends` : "5 minutes before class ends";
   }
 
   function updateTimingPreview() {
     updateTimingControls();
+
+    const target = selectedTarget();
     const temp = {
-      classId: periodSelect.value,
+      classId: target.classId,
+      entryName: target.entryName,
       date: dateInput.value,
       timing: selectedTiming(),
       customMinutes: customMinutes()
@@ -901,13 +1013,24 @@
     const info = ReminderService.getTriggerTime(temp);
 
     if (!info) {
-      timingPreview.textContent = "Choose a class and school day to preview the reminder time.";
+      timingPreview.textContent = target.isBreak
+        ? `${target.label} is not part of the selected day's bell schedule.`
+        : "Choose a class and school day to preview the reminder time.";
       return;
     }
 
+    const triggerLabel =
+      typeof ReminderService.timingLabelForTarget === "function"
+        ? ReminderService.timingLabelForTarget(
+            selectedTiming(),
+            customMinutes(),
+            target.label,
+            target.isBreak
+          )
+        : ReminderService.timingLabel(selectedTiming(), customMinutes());
+
     timingPreview.textContent =
-      `${DashboardData.getClass(periodSelect.value)?.name || `Period ${periodSelect.value}`} · ` +
-      `${ReminderService.timingLabel(selectedTiming(), customMinutes())} at ` +
+      `${target.label} · ${triggerLabel} at ` +
       `${info.trigger.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · ` +
       `${info.scheduleLabel}`;
   }
@@ -921,6 +1044,7 @@
   }
 
   function statusLabel(reminder) {
+    if (reminder.scheduleUnavailable) return "Not on this schedule";
     if (reminder.status === "done") return "Done";
     if (reminder.status === "missed") return "Missed";
     if (reminder.status === "snoozed") return "Snoozed";
@@ -934,7 +1058,10 @@
       .filter(item => item.date >= ReminderService.dateKey())
       .sort((a, b) => {
         if (a.date !== b.date) return a.date.localeCompare(b.date);
-        return String(a.triggerAt).localeCompare(String(b.triggerAt));
+        if (a.scheduleUnavailable !== b.scheduleUnavailable) {
+          return a.scheduleUnavailable ? 1 : -1;
+        }
+        return Number(a.triggerAt || 0) - Number(b.triggerAt || 0);
       });
 
     const active = reminders.filter(item => !["done", "missed"].includes(item.status));
@@ -1031,9 +1158,12 @@
 
   function addReminder() {
     try {
+      const target = selectedTarget();
+
       const reminder = ReminderService.addReminder({
         date: dateInput.value,
-        classId: periodSelect.value,
+        classId: target.classId,
+        entryName: target.entryName,
         studentId: selectedStudentId,
         studentClassId: selectedStudentClassId,
         studentName: studentInput.value.trim(),
@@ -1046,7 +1176,7 @@
       reminderText.value = "";
       clearStudentSelection();
       renderReminders();
-      showToast(`Reminder set for ${reminder.classId ? DashboardData.getClass(reminder.classId)?.name || `Period ${reminder.classId}` : "class"}`);
+      showToast(`Reminder set for ${reminder.className || target.label}`);
     } catch (error) {
       console.error(error);
       showToast(error.message || "Reminder could not be added");
