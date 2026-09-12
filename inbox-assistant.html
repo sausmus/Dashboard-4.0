@@ -176,13 +176,14 @@
   changeUrlButton.addEventListener('click', () => showSetup());
 
   // Receive To-Do handoffs from the embedded Inbox Assistant.
-  // Only messages coming from this page's iframe are accepted.
+  // Apps Script may render its HtmlService page inside an additional
+  // Google-hosted frame, so event.source is not always the outer iframe's
+  // contentWindow. Validate the message contract instead of requiring
+  // direct-frame identity.
   window.addEventListener('message', event => {
     const data = event && event.data;
 
     if (
-      !assistantFrame.contentWindow ||
-      event.source !== assistantFrame.contentWindow ||
       !data ||
       data.type !== 'teacher-dashboard:add-todo'
     ) {
@@ -200,7 +201,7 @@
             requestId,
             ...payload
           },
-          event.origin && event.origin !== 'null' ? event.origin : '*'
+          '*'
         );
       } catch (_) {
         // The task may still have been added successfully even if
