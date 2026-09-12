@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Class Reminders</title>
+  <link rel="icon" type="image/png" href="bjh-logo.png">
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --blue: #1a73e8;
+      --blue-dark: #1765cc;
+      --green: #188038;
+      --red: #c5221f;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --panel: #ffffff;
+      --page: #f4f6f8;
+    }
+
+    body {
+      margin: 0;
+      padding: 26px;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--page);
+      color: var(--text);
+    }
+
+    .dashboard-back {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 900;
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .dashboard-back:hover { background: #e8f0fe; }
+
+    .app {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .app-header h1 {
+      margin: 0;
+      text-align: center;
+      font-size: 30px;
+    }
+
+    .bjh-logo {
+      width: 64px;
+      height: auto;
+      flex-shrink: 0;
+    }
+
+    .bjh-logo.right { transform: scaleX(-1); }
+
+    .global-bell-row {
+      display: flex;
+      justify-content: flex-end;
+      margin: -4px 0 16px;
+    }
+
+    .view-switch {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+
+    .view-switch button {
+      min-width: 160px;
+      min-height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 16px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .view-switch button.selected {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .todo-input {
+      font-size: 16px;
+    }
+
+    .todo-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .todo-item {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      padding: 14px 15px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .todo-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      min-height: 0;
+      margin: 1px 0 0;
+      padding: 0;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
+
+    .todo-text {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .todo-date {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .todo-item.completed {
+      background: #f8f9fa;
+      opacity: .78;
+    }
+
+    .todo-item.completed .todo-text {
+      text-decoration: line-through;
+    }
+
+    .completed-todos {
+      margin-top: 18px;
+      border-top: 1px solid var(--border);
+      padding-top: 4px;
+    }
+
+    .completed-todos summary {
+      padding: 13px 2px 9px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .completed-todos[open] summary {
+      margin-bottom: 4px;
+    }
+
+    .section {
+      background: var(--panel);
+      padding: 22px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .section-title {
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .schedule-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(220px, 320px);
+      gap: 16px;
+      align-items: end;
+    }
+
+    .schedule-status {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 800;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      flex: 0 0 auto;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .field.full { grid-column: 1 / -1; }
+
+    label.field-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .45px;
+      text-transform: uppercase;
+    }
+
+    select,
+    input,
+    textarea {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 105px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    select:focus,
+    input:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(26,115,232,.15);
+    }
+
+    .student-field {
+      position: relative;
+    }
+
+    .suggestions {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 5px);
+      z-index: 500;
+      display: none;
+      max-height: 260px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(0,0,0,.14);
+    }
+
+    .suggestions.visible { display: block; }
+
+    .suggestion {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 0;
+      border-bottom: 1px solid #f1f3f4;
+      background: #fff;
+      color: var(--text);
+      text-align: left;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .suggestion:last-child { border-bottom: 0; }
+    .suggestion:hover,
+    .suggestion.active { background: #e8f0fe; }
+
+    .suggestion-name {
+      display: block;
+      font-weight: 700;
+    }
+
+    .suggestion-class {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .student-match-note,
+    .small-note {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .timing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .timing-option {
+      position: relative;
+    }
+
+    .timing-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .timing-option span {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .timing-option input:checked + span {
+      border-color: var(--blue);
+      background: #e8f0fe;
+      color: var(--blue);
+    }
+
+    .custom-timing-row {
+      display: none;
+      grid-template-columns: minmax(100px, 160px) 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #f8f9fa;
+    }
+
+    .custom-timing-row.visible { display: grid; }
+
+    .custom-timing-row input { min-height: 40px; }
+
+    .custom-timing-copy {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .privacy-option { position: relative; }
+
+    .privacy-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .privacy-option span {
+      min-height: 66px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .privacy-option strong { font-size: 14px; }
+    .privacy-option small { color: var(--muted); font-size: 11px; line-height: 1.35; }
+
+    .privacy-option input:checked + span {
+      border-color: var(--blue);
+      background: #e8f0fe;
+      color: var(--blue);
+    }
+
+    .timing-preview {
+      margin-top: 12px;
+      padding: 11px 13px;
+      border-radius: 10px;
+      background: #f8f9fa;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button.button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 17px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .button.primary {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .button.primary:hover { background: var(--blue-dark); }
+
+    .button.secondary {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .button.danger {
+      background: #fce8e6;
+      color: var(--red);
+    }
+
+    .reminder-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .reminder-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 15px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .reminder-card.done,
+    .reminder-card.missed {
+      background: #f8f9fa;
+      opacity: .75;
+    }
+
+    .reminder-meta {
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .reminder-text {
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .reminder-student {
+      margin-top: 5px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .reminder-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .reminder-actions button {
+      min-height: 36px;
+      border: 0;
+      border-radius: 9px;
+      padding: 8px 11px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .reminder-actions .show-button {
+      background: #e8f0fe;
+      color: var(--blue);
+    }
+
+    .reminder-actions .done-button {
+      background: #e6f4ea;
+      color: var(--green);
+    }
+
+    .reminder-actions .delete-button {
+      background: #fce8e6;
+      color: var(--red);
+    }
+
+    .empty-state {
+      padding: 35px 18px;
+      border: 1px dashed #bdc1c6;
+      border-radius: 12px;
+      background: #fafafa;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.55;
+    }
+
+    .list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .list-header .section-title { margin: 0; }
+
+    .list-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button.compact {
+      min-height: 34px;
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+
+    .count-pill {
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #e8f0fe;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 25px;
+      z-index: 3000;
+      transform: translate(-50%, 15px);
+      padding: 11px 18px;
+      border-radius: 30px;
+      background: #202124;
+      color: #fff;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s;
+      text-align: center;
+      max-width: calc(100% - 30px);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 720px) {
+      .form-grid,
+      .schedule-row { grid-template-columns: 1fr; }
+      .timing-grid,
+      .privacy-grid { grid-template-columns: 1fr; }
+      .custom-timing-row { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .dashboard-back { position: static; margin-bottom: 14px; }
+      .app-header { gap: 8px; }
+      .app-header h1 { font-size: 23px; }
+      .bjh-logo { width: 46px; }
+      .view-switch button { min-width: 0; flex: 1; }
+      .section { padding: 17px; }
+      .reminder-card { grid-template-columns: 1fr; }
+      .reminder-actions { justify-content: flex-start; }
+      .button-row .button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+<a class="dashboard-back" href="index.html">← Dashboard</a>
+
+<main class="app">
+  <div class="app-header">
+    <img src="bjh-logo.png" class="bjh-logo" alt="BJH Bobcat">
+    <h1>Class Reminders</h1>
+    <img src="bjh-logo.png" class="bjh-logo right" alt="BJH Bobcat">
+  </div>
+
+  <div class="global-bell-row"><div data-bell-mini></div></div>
+
+  <div class="view-switch" aria-label="Class Reminders view">
+    <button id="dailyRemindersViewButton" class="selected" type="button">Daily Reminders</button>
+    <button id="todoListViewButton" type="button">To-Do List (0)</button>
+  </div>
+
+  <div id="dailyRemindersView">
+  <section class="section">
+    <div class="section-title">Today's Bell Schedule</div>
+    <div class="schedule-row">
+      <div id="scheduleStatus" class="schedule-status">
+        <span class="status-dot"></span>
+        <span>Loading schedule…</span>
+      </div>
+
+      <div>
+        <label class="field-label" for="scheduleMode">Schedule Override</label>
+        <select id="scheduleMode">
+          <option value="auto">Auto</option>
+          <option value="regular">Regular</option>
+          <option value="lateStart">Late Start</option>
+          <option value="minimum">Minimum Day</option>
+        </select>
+      </div>
+    </div>
+    <div class="small-note">
+      Auto follows Wednesday Late Start and the minimum-day dates saved in Dashboard Settings. An override here also changes Bell Countdown for today.
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">New Reminder</div>
+
+    <div class="form-grid">
+      <div>
+        <label class="field-label" for="reminderPeriod">Period / Break</label>
+        <select id="reminderPeriod"></select>
+      </div>
+
+      <div>
+        <label class="field-label" for="reminderDate">Day</label>
+        <input id="reminderDate" type="date">
+      </div>
+
+      <div class="field full student-field">
+        <label class="field-label" for="studentInput">Student <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></label>
+        <input
+          id="studentInput"
+          type="text"
+          autocomplete="off"
+          placeholder="Start typing a student's name…"
+        >
+        <div id="studentSuggestions" class="suggestions"></div>
+        <div id="studentMatchNote" class="student-match-note">
+          Suggestions search student rosters across all active periods.
+        </div>
+      </div>
+
+      <div class="field full">
+        <label class="field-label" for="reminderText">Reminder</label>
+        <textarea id="reminderText" placeholder="Example: Give Maya her field trip form"></textarea>
+      </div>
+
+      <div class="field full">
+        <label class="field-label">When</label>
+        <div class="timing-grid">
+          <label class="timing-option">
+            <input type="radio" name="timing" value="start" checked>
+            <span>Start of class</span>
+          </label>
+          <label class="timing-option">
+            <input type="radio" name="timing" value="after5">
+            <span>5 minutes into class</span>
+          </label>
+          <label class="timing-option">
+            <input type="radio" name="timing" value="custom">
+            <span>Custom reminder</span>
+          </label>
+          <label class="timing-option">
+            <input type="radio" name="timing" value="before5">
+            <span>5 minutes before class ends</span>
+          </label>
+        </div>
+        <div id="customTimingRow" class="custom-timing-row">
+          <input id="customMinutes" type="number" min="1" max="60" step="1" value="10" aria-label="Custom minutes before class ends">
+          <div class="custom-timing-copy">minutes before class ends</div>
+        </div>
+        <div id="timingPreview" class="timing-preview"></div>
+      </div>
+
+      <div class="field full">
+        <label class="field-label">Reminder Privacy</label>
+        <div class="privacy-grid">
+          <label class="privacy-option">
+            <input type="radio" name="privacy" value="normal" checked>
+            <span>
+              <strong>Normal</strong>
+              <small>Shows the student and reminder details immediately.</small>
+            </span>
+          </label>
+          <label class="privacy-option">
+            <input type="radio" name="privacy" value="private">
+            <span>
+              <strong>Private</strong>
+              <small>Hides details until you press Show—useful when projecting.</small>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-row">
+      <button id="addReminderButton" class="button primary" type="button">Add Reminder</button>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="list-header">
+      <div class="section-title">Your Reminders</div>
+      <div class="list-header-actions">
+        <div id="reminderCount" class="count-pill">0 active</div>
+        <button id="clearCompletedButton" class="button secondary compact" type="button">Clear Completed</button>
+      </div>
+    </div>
+    <div id="reminderList" class="reminder-list"></div>
+  </section>
+  </div>
+
+  <div id="todoListView" hidden>
+    <section class="section">
+      <div class="section-title">New To-Do</div>
+      <input id="todoInput" class="todo-input" type="text" autocomplete="off" maxlength="500" placeholder="What do you need to do?">
+      <div class="small-note">Type a task and press Enter.</div>
+    </section>
+
+    <section class="section">
+      <div class="list-header">
+        <div class="section-title">To-Do List</div>
+        <div id="todoCount" class="count-pill">0 active</div>
+      </div>
+      <div id="todoList" class="todo-list"></div>
+      <details id="completedTodos" class="completed-todos">
+        <summary>Completed (<span id="completedTodoCount">0</span>)</summary>
+        <div id="completedTodoList" class="todo-list"></div>
+      </details>
+    </section>
+  </div>
+</main>
+
+<div id="toast" class="toast" aria-live="polite"></div>
+
+<script src="shared/dashboard-data.js"></script>
+<script src="shared/bell-service.js"></script>
+<script src="shared/reminder-service.js"></script>
+
+<script>
+(() => {
+  "use strict";
+
+  const el = id => document.getElementById(id);
+  const periodSelect = el("reminderPeriod");
+  const dateInput = el("reminderDate");
+  const studentInput = el("studentInput");
+  const suggestions = el("studentSuggestions");
+  const matchNote = el("studentMatchNote");
+  const reminderText = el("reminderText");
+  const customTimingRow = el("customTimingRow");
+  const customMinutesInput = el("customMinutes");
+  const timingPreview = el("timingPreview");
+  const reminderList = el("reminderList");
+  const reminderCount = el("reminderCount");
+  const clearCompletedButton = el("clearCompletedButton");
+  const scheduleMode = el("scheduleMode");
+  const scheduleStatus = el("scheduleStatus");
+  const toast = el("toast");
+  const dailyRemindersViewButton = el("dailyRemindersViewButton");
+  const todoListViewButton = el("todoListViewButton");
+  const dailyRemindersView = el("dailyRemindersView");
+  const todoListView = el("todoListView");
+  const todoInput = el("todoInput");
+  const todoList = el("todoList");
+  const todoCount = el("todoCount");
+  const completedTodos = el("completedTodos");
+  const completedTodoCount = el("completedTodoCount");
+  const completedTodoList = el("completedTodoList");
+
+  let selectedStudentId = "";
+  let selectedStudentClassId = "";
+  const revealedPrivateIds = new Set();
+  let suggestionItems = [];
+  let activeSuggestionIndex = -1;
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => toast.classList.remove("show"), 1900);
+  }
+
+  function defaultReminderDate() {
+    const snapshot = BellService.getSnapshot();
+
+    if (
+      (snapshot.phase === "afterSchool" || snapshot.phase === "weekend") &&
+      snapshot.targetDateKey
+    ) {
+      const [year, month, day] = snapshot.targetDateKey.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    return new Date();
+  }
+
+  function formatDateInput(date) {
+    return ReminderService.dateKey(date);
+  }
+
+  function formatDisplayDate(key) {
+    const parts = key.split("-").map(Number);
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    const today = ReminderService.dateKey();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (key === today) return "Today";
+    if (key === ReminderService.dateKey(tomorrow)) return "Tomorrow";
+
+    return date.toLocaleDateString([], {
+      weekday: "short",
+      month: "short",
+      day: "numeric"
+    });
+  }
+
+  function reminderScheduleKey() {
+    const dateValue = dateInput.value || formatDateInput(defaultReminderDate());
+    const [year, month, day] = dateValue.split("-").map(Number);
+    const selectedDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+    const todayKey = ReminderService.dateKey();
+
+    // For today, the BellService snapshot is authoritative so this dropdown
+    // immediately follows the same global schedule override as Bell Countdown.
+    if (dateValue === todayKey) {
+      const snapshot = BellService.getSnapshot();
+      if (["regular", "lateStart", "minimum"].includes(snapshot?.scheduleKey)) {
+        return snapshot.scheduleKey;
+      }
+    }
+
+    try {
+      if (DashboardData.isMinimumDayDate(selectedDate)) return "minimum";
+    } catch (error) {}
+
+    return selectedDate.getDay() === 3 ? "lateStart" : "regular";
+  }
+
+  function buildPeriods() {
+    const previous = periodSelect.value;
+    const classes = DashboardData.getClasses({ activeOnly: true });
+    const preferred = DashboardData.getCurrentClassId();
+    const classMap = new Map(classes.map(item => [String(item.id), item]));
+    const scheduleKey = reminderScheduleKey();
+    const schedule = DashboardData.getBellSchedule(scheduleKey) || [];
+
+    periodSelect.innerHTML = "";
+
+    // Mirror the global bell schedule exactly instead of grouping classes
+    // and breaks separately. Example: P1, P2, Snack, P3, P4, P5, Lunch, P6, P7.
+    schedule.forEach(entry => {
+      const entryName = String(entry?.name || "").trim();
+      if (!entryName) return;
+
+      const periodMatch = entryName.match(/^Period\s+(\d+)$/i);
+
+      if (periodMatch) {
+        const classId = periodMatch[1];
+        const classInfo = classMap.get(classId);
+        if (!classInfo) return;
+
+        const option = document.createElement("option");
+        option.value = `class:${classId}`;
+        option.textContent = classInfo.name;
+        periodSelect.appendChild(option);
+        return;
+      }
+
+      if (/^(Snack|Lunch)$/i.test(entryName)) {
+        const option = document.createElement("option");
+        option.value = `entry:${entryName}`;
+        option.textContent = entryName;
+        periodSelect.appendChild(option);
+      }
+    });
+
+    const allValues = [...periodSelect.options].map(option => option.value);
+
+    if (allValues.includes(previous)) {
+      periodSelect.value = previous;
+    } else if (allValues.includes(`class:${preferred}`)) {
+      periodSelect.value = `class:${preferred}`;
+    } else if (periodSelect.options.length) {
+      periodSelect.selectedIndex = 0;
+    }
+  }
+
+  function selectedTarget() {
+    const value = String(periodSelect.value || "");
+
+    if (value.startsWith("entry:")) {
+      const entryName = value.slice("entry:".length);
+      return {
+        classId: "",
+        entryName,
+        label: entryName,
+        isBreak: true
+      };
+    }
+
+    const classId = value.startsWith("class:")
+      ? value.slice("class:".length)
+      : value;
+
+    const classInfo = DashboardData.getClass(classId);
+
+    return {
+      classId,
+      entryName: "",
+      label: classInfo?.name || `Period ${classId}`,
+      isBreak: false
+    };
+  }
+
+  function allStudents() {
+    const classes = DashboardData.getClasses({ activeOnly: true });
+    const students = [];
+
+    classes.forEach(classInfo => {
+      let roster = [];
+
+      if (typeof DashboardData.getStudents === "function") {
+        roster = DashboardData.getStudents(classInfo.id) || [];
+      } else if (typeof DashboardData.getClassroomStudents === "function") {
+        roster = DashboardData.getClassroomStudents(classInfo.id) || [];
+      } else if (typeof DashboardData.getRoster === "function") {
+        roster = (DashboardData.getRoster(classInfo.id) || []).map((name, index) => ({
+          id: `manual-${classInfo.id}-${index}`,
+          name: typeof name === "string" ? name : name?.name || ""
+        }));
+      }
+
+      roster.forEach((student, index) => {
+        const normalized = typeof student === "string"
+          ? { id: `manual-${classInfo.id}-${index}`, name: student }
+          : student;
+
+        if (!normalized?.name) return;
+
+        students.push({
+          ...normalized,
+          rosterClassId: classInfo.id,
+          rosterClassName: classInfo.name || `Period ${classInfo.id}`
+        });
+      });
+    });
+
+    return students.sort((a, b) =>
+      a.name.localeCompare(b.name) ||
+      String(a.rosterClassId).localeCompare(String(b.rosterClassId), undefined, { numeric: true })
+    );
+  }
+
+  function clearStudentSelection(keepText = false) {
+    selectedStudentId = "";
+    selectedStudentClassId = "";
+    if (!keepText) studentInput.value = "";
+    matchNote.textContent = "Suggestions search student rosters across all active periods.";
+  }
+
+  function updateSelectedStudentNote() {
+    if (!selectedStudentId) return;
+    const student = allStudents().find(item =>
+      item.id === selectedStudentId &&
+      (!selectedStudentClassId || String(item.rosterClassId) === String(selectedStudentClassId))
+    );
+    if (!student) return;
+
+    const target = selectedTarget();
+    matchNote.textContent =
+      `Matched to ${student.name} · ${student.rosterClassName}. Reminder timing will use ${target.label}.`;
+  }
+
+  function chooseStudent(student) {
+    selectedStudentId = student.id;
+    selectedStudentClassId = String(student.rosterClassId || "");
+    studentInput.value = student.name;
+    suggestions.classList.remove("visible");
+    updateSelectedStudentNote();
+  }
+
+  function renderSuggestions() {
+    const query = studentInput.value.trim().toLocaleLowerCase();
+    const students = allStudents();
+
+    if (!query) {
+      suggestionItems = [];
+      suggestions.innerHTML = "";
+      suggestions.classList.remove("visible");
+      return;
+    }
+
+    suggestionItems = students
+      .map(student => {
+        const name = student.name.toLocaleLowerCase();
+        const tokens = name.split(/\s+/);
+        const rank = name.startsWith(query)
+          ? 0
+          : tokens.some(token => token.startsWith(query))
+            ? 1
+            : name.includes(query)
+              ? 2
+              : 99;
+        return { student, rank };
+      })
+      .filter(item => item.rank < 99)
+      .sort((a, b) => a.rank - b.rank || a.student.name.localeCompare(b.student.name))
+      .slice(0, 8)
+      .map(item => item.student);
+
+    suggestions.innerHTML = "";
+    activeSuggestionIndex = -1;
+
+    suggestionItems.forEach((student, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "suggestion";
+
+      const name = document.createElement("span");
+      name.className = "suggestion-name";
+      name.textContent = student.name;
+
+      const className = document.createElement("span");
+      className.className = "suggestion-class";
+      className.textContent = student.rosterClassName;
+
+      button.append(name, className);
+      button.addEventListener("mousedown", event => {
+        event.preventDefault();
+        chooseStudent(student);
+      });
+      suggestions.appendChild(button);
+    });
+
+    suggestions.classList.toggle("visible", suggestionItems.length > 0);
+
+    const exactMatches = students.filter(student => student.name.toLocaleLowerCase() === query);
+    if (exactMatches.length === 1) {
+      const exact = exactMatches[0];
+      selectedStudentId = exact.id;
+      selectedStudentClassId = String(exact.rosterClassId || "");
+      updateSelectedStudentNote();
+    } else if (selectedStudentId) {
+      const selected = students.find(student => student.id === selectedStudentId);
+      if (!selected || selected.name.toLocaleLowerCase() !== query) {
+        selectedStudentId = "";
+        selectedStudentClassId = "";
+        matchNote.textContent = "No exact roster match yet. You can keep typing or leave the student field as free text.";
+      }
+    } else if (exactMatches.length > 1) {
+      matchNote.textContent = "Multiple students have this name. Choose the correct period from the suggestions.";
+    } else {
+      matchNote.textContent = suggestionItems.length
+        ? `${suggestionItems.length} roster match${suggestionItems.length === 1 ? "" : "es"} found.`
+        : "No roster match found. You can still use the name as free text.";
+    }
+  }
+
+  function selectedTiming() {
+    return document.querySelector('input[name="timing"]:checked')?.value || "start";
+  }
+
+  function selectedPrivacy() {
+    return document.querySelector('input[name="privacy"]:checked')?.value === "private" ? "private" : "normal";
+  }
+
+  function customMinutes() {
+    return Math.max(1, Math.min(60, Math.floor(Number(customMinutesInput.value) || 10)));
+  }
+
+  function updateTimingControls() {
+    const target = selectedTarget();
+    customTimingRow.classList.toggle("visible", selectedTiming() === "custom");
+
+    const copy = customTimingRow.querySelector(".custom-timing-copy");
+    if (copy) {
+      copy.textContent = target.isBreak
+        ? `minutes before ${target.label} ends`
+        : "minutes before class ends";
+    }
+
+    document.querySelector('input[name="timing"][value="start"] + span').textContent =
+      target.isBreak ? `Start of ${target.label}` : "Start of class";
+
+    document.querySelector('input[name="timing"][value="after5"] + span').textContent =
+      target.isBreak ? `5 minutes into ${target.label}` : "5 minutes into class";
+
+    document.querySelector('input[name="timing"][value="before5"] + span').textContent =
+      target.isBreak ? `5 minutes before ${target.label} ends` : "5 minutes before class ends";
+  }
+
+  function updateTimingPreview() {
+    updateTimingControls();
+
+    const target = selectedTarget();
+    const temp = {
+      classId: target.classId,
+      entryName: target.entryName,
+      date: dateInput.value,
+      timing: selectedTiming(),
+      customMinutes: customMinutes()
+    };
+
+    const info = ReminderService.getTriggerTime(temp);
+
+    if (!info) {
+      timingPreview.textContent = target.isBreak
+        ? `${target.label} is not part of the selected day's bell schedule.`
+        : "Choose a class and school day to preview the reminder time.";
+      return;
+    }
+
+    const triggerLabel =
+      typeof ReminderService.timingLabelForTarget === "function"
+        ? ReminderService.timingLabelForTarget(
+            selectedTiming(),
+            customMinutes(),
+            target.label,
+            target.isBreak
+          )
+        : ReminderService.timingLabel(selectedTiming(), customMinutes());
+
+    timingPreview.textContent =
+      `${target.label} · ${triggerLabel} at ` +
+      `${info.trigger.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · ` +
+      `${info.scheduleLabel}`;
+  }
+
+  function renderSchedule() {
+    const snapshot = BellService.getSnapshot();
+    scheduleMode.value = snapshot.scheduleMode || "auto";
+    scheduleStatus.innerHTML =
+      `<span class="status-dot"></span><span>${snapshot.scheduleLabel} · ${snapshot.scheduleMode === "auto" ? "Auto detected" : "Manual override"}</span>`;
+    updateTimingPreview();
+  }
+
+  function statusLabel(reminder) {
+    if (reminder.scheduleUnavailable) return "Not on this schedule";
+    if (reminder.status === "done") return "Done";
+    if (reminder.status === "missed") return "Missed";
+    if (reminder.status === "snoozed") return "Snoozed";
+    if (reminder.status === "alerting") return "Alerting";
+    return "Pending";
+  }
+
+  function renderReminders() {
+    const allReminders = ReminderService.getReminders();
+    const reminders = allReminders
+      .filter(item => item.date >= ReminderService.dateKey())
+      .sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        if (a.scheduleUnavailable !== b.scheduleUnavailable) {
+          return a.scheduleUnavailable ? 1 : -1;
+        }
+        return Number(a.triggerAt || 0) - Number(b.triggerAt || 0);
+      });
+
+    const active = reminders.filter(item => !["done", "missed"].includes(item.status));
+    const completed = allReminders.filter(item => item.status === "done");
+    reminderCount.textContent = `${active.length} active`;
+    clearCompletedButton.disabled = completed.length === 0;
+
+    reminderList.innerHTML = "";
+
+    if (reminders.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.innerHTML = "<strong>No reminders yet.</strong><br>Create one above and it will alert you while any Teacher Dashboard page is open.";
+      reminderList.appendChild(empty);
+      return;
+    }
+
+    reminders.forEach(reminder => {
+      const card = document.createElement("div");
+      card.className = `reminder-card ${reminder.status}`;
+
+      const copy = document.createElement("div");
+
+      const meta = document.createElement("div");
+      meta.className = "reminder-meta";
+      meta.textContent =
+        `${formatDisplayDate(reminder.date)} · ${reminder.className} · ${reminder.triggerLabel} · ${statusLabel(reminder)}`;
+
+      const privateHidden = reminder.privacy === "private" && !revealedPrivateIds.has(reminder.id);
+
+      const text = document.createElement("div");
+      text.className = "reminder-text";
+      text.textContent = privateHidden ? "Private reminder" : reminder.text;
+
+      copy.append(meta, text);
+
+      if (!privateHidden && reminder.studentName) {
+        const student = document.createElement("div");
+        student.className = "reminder-student";
+        student.textContent = reminder.studentName;
+        copy.appendChild(student);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "reminder-actions";
+
+      if (privateHidden) {
+        const show = document.createElement("button");
+        show.type = "button";
+        show.className = "show-button";
+        show.textContent = "Show";
+        show.addEventListener("click", () => {
+          revealedPrivateIds.add(reminder.id);
+          renderReminders();
+        });
+        actions.appendChild(show);
+      }
+
+      if (!["done", "missed"].includes(reminder.status)) {
+        const done = document.createElement("button");
+        done.type = "button";
+        done.className = "done-button";
+        done.textContent = "Done";
+        done.addEventListener("click", () => {
+          ReminderService.updateReminder(reminder.id, {
+            status: "done",
+            completedAt: new Date().toISOString(),
+            snoozeUntil: 0,
+            claimOwner: "",
+            claimUntil: 0
+          });
+          renderReminders();
+          showToast("Reminder completed");
+        });
+        actions.appendChild(done);
+      }
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "delete-button";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", () => {
+        revealedPrivateIds.delete(reminder.id);
+        ReminderService.deleteReminder(reminder.id);
+        renderReminders();
+        showToast("Reminder deleted");
+      });
+      actions.appendChild(remove);
+
+      card.append(copy, actions);
+      reminderList.appendChild(card);
+    });
+  }
+
+  function addReminder() {
+    try {
+      const target = selectedTarget();
+
+      const reminder = ReminderService.addReminder({
+        date: dateInput.value,
+        classId: target.classId,
+        entryName: target.entryName,
+        studentId: selectedStudentId,
+        studentClassId: selectedStudentClassId,
+        studentName: studentInput.value.trim(),
+        text: reminderText.value.trim(),
+        timing: selectedTiming(),
+        customMinutes: customMinutes(),
+        privacy: selectedPrivacy()
+      });
+
+      reminderText.value = "";
+      clearStudentSelection();
+      renderReminders();
+      showToast(`Reminder set for ${reminder.className || target.label}`);
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Reminder could not be added");
+    }
+  }
+
+  function setView(view) {
+    const showTodos = view === "todo";
+    dailyRemindersView.hidden = showTodos;
+    todoListView.hidden = !showTodos;
+    dailyRemindersViewButton.classList.toggle("selected", !showTodos);
+    todoListViewButton.classList.toggle("selected", showTodos);
+
+    if (showTodos) {
+      renderTodos();
+      setTimeout(() => todoInput.focus(), 0);
+    }
+  }
+
+  function formatTodoDate(isoString) {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) return "";
+
+    const today = new Date();
+    const sameDay =
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate();
+
+    if (sameDay) return "Added today";
+
+    return `Added ${date.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() === today.getFullYear() ? undefined : "numeric"
+    })}`;
+  }
+
+  function buildTodoItem(todo, completed) {
+    const row = document.createElement("label");
+    row.className = `todo-item${completed ? " completed" : ""}`;
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = completed;
+    checkbox.setAttribute("aria-label", completed ? `Restore ${todo.text}` : `Complete ${todo.text}`);
+    checkbox.addEventListener("change", () => {
+      ReminderService.setTodoCompleted(todo.id, checkbox.checked);
+      renderTodos();
+      showToast(checkbox.checked ? "To-do completed" : "To-do restored");
+    });
+
+    const copy = document.createElement("div");
+    const text = document.createElement("div");
+    text.className = "todo-text";
+    text.textContent = todo.text;
+
+    const date = document.createElement("div");
+    date.className = "todo-date";
+    date.textContent = formatTodoDate(todo.createdAt);
+
+    copy.append(text, date);
+    row.append(checkbox, copy);
+    return row;
+  }
+
+  function renderTodos() {
+    const todos = ReminderService.getTodos();
+    const active = todos
+      .filter(todo => !todo.completedAt)
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    const completed = todos
+      .filter(todo => todo.completedAt)
+      .sort((a, b) => String(b.completedAt).localeCompare(String(a.completedAt)));
+
+    todoCount.textContent = `${active.length} active`;
+    todoListViewButton.textContent = `To-Do List (${active.length})`;
+    completedTodoCount.textContent = String(completed.length);
+    todoList.innerHTML = "";
+    completedTodoList.innerHTML = "";
+
+    if (!active.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.innerHTML = "<strong>Nothing on your list.</strong><br>Add a task above and it will stay here until you complete it.";
+      todoList.appendChild(empty);
+    } else {
+      active.forEach(todo => todoList.appendChild(buildTodoItem(todo, false)));
+    }
+
+    if (!completed.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Completed tasks will appear here.";
+      completedTodoList.appendChild(empty);
+    } else {
+      completed.forEach(todo => completedTodoList.appendChild(buildTodoItem(todo, true)));
+    }
+  }
+
+  function addTodo() {
+    const text = todoInput.value.trim();
+    if (!text) return;
+
+    try {
+      ReminderService.addTodo({ text, source: "manual" });
+      todoInput.value = "";
+      renderTodos();
+      showToast("Added to To-Do List");
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "To-do could not be added");
+    }
+  }
+
+  dailyRemindersViewButton.addEventListener("click", () => setView("daily"));
+  todoListViewButton.addEventListener("click", () => setView("todo"));
+  todoInput.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.isComposing) {
+      event.preventDefault();
+      addTodo();
+    }
+  });
+
+  periodSelect.addEventListener("change", () => {
+    updateSelectedStudentNote();
+    updateTimingPreview();
+  });
+
+  dateInput.addEventListener("change", () => {
+    buildPeriods();
+    updateTimingPreview();
+  });
+
+  studentInput.addEventListener("input", () => {
+    renderSuggestions();
+  });
+
+  studentInput.addEventListener("keydown", event => {
+    const buttons = [...suggestions.querySelectorAll(".suggestion")];
+    if (!buttons.length) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, buttons.length - 1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+    } else if (event.key === "Enter" && activeSuggestionIndex >= 0) {
+      event.preventDefault();
+      chooseStudent(suggestionItems[activeSuggestionIndex]);
+      return;
+    } else if (event.key === "Escape") {
+      suggestions.classList.remove("visible");
+      return;
+    } else {
+      return;
+    }
+
+    buttons.forEach((button, index) => button.classList.toggle("active", index === activeSuggestionIndex));
+    buttons[activeSuggestionIndex]?.scrollIntoView({ block: "nearest" });
+  });
+
+  studentInput.addEventListener("blur", () => {
+    setTimeout(() => suggestions.classList.remove("visible"), 120);
+  });
+
+  document.querySelectorAll('input[name="timing"]').forEach(input => {
+    input.addEventListener("change", updateTimingPreview);
+  });
+
+  customMinutesInput.addEventListener("input", updateTimingPreview);
+
+  scheduleMode.addEventListener("change", () => {
+    BellService.setScheduleMode(scheduleMode.value);
+    buildPeriods();
+    renderSchedule();
+    showToast(`${BellService.getSnapshot().scheduleLabel} schedule selected`);
+  });
+
+  el("addReminderButton").addEventListener("click", addReminder);
+
+  clearCompletedButton.addEventListener("click", () => {
+    const cleared = ReminderService.clearCompleted();
+    renderReminders();
+    showToast(cleared ? `${cleared} completed reminder${cleared === 1 ? "" : "s"} cleared` : "No completed reminders to clear");
+  });
+
+  window.addEventListener(ReminderService.changeEvent, renderReminders);
+  window.addEventListener(ReminderService.todoChangeEvent, renderTodos);
+  window.addEventListener(DashboardData.changeEvent, () => {
+    buildPeriods();
+    renderSuggestions();
+    renderReminders();
+    updateTimingPreview();
+  });
+  window.addEventListener(BellService.changeEvent, () => {
+    buildPeriods();
+    renderSchedule();
+  });
+
+  dateInput.value = formatDateInput(defaultReminderDate());
+  buildPeriods();
+  renderSchedule();
+  updateTimingPreview();
+  renderReminders();
+  renderTodos();
+})();
+</script>
+</body>
+</html>
