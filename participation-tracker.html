@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Participation Tracker</title>
+  <link rel="icon" type="image/png" href="bjh-logo.png">
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --blue: #1a73e8;
+      --blue-dark: #1765cc;
+      --green: #188038;
+      --green-bg: #e6f4ea;
+      --amber: #b06000;
+      --amber-bg: #fef7e0;
+      --red: #c5221f;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --panel: #ffffff;
+      --page: #f4f6f8;
+    }
+
+    body {
+      margin: 0;
+      padding: 26px;
+      font-family: Arial, sans-serif;
+      background: var(--page);
+      color: var(--text);
+    }
+
+    .dashboard-back {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 900;
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .dashboard-back:hover {
+      background: #e8f0fe;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    }
+
+    .app {
+      max-width: 1180px;
+      margin: auto;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .app-header h1 {
+      margin: 0;
+      text-align: center;
+      font-size: 30px;
+    }
+
+    .global-bell-row {
+      display: flex;
+      justify-content: flex-end;
+      margin: -6px 0 16px;
+    }
+
+    .bjh-logo {
+      width: 64px;
+      height: auto;
+      flex-shrink: 0;
+    }
+
+    .bjh-logo.right { transform: scaleX(-1); }
+
+    .section {
+      background: var(--panel);
+      padding: 20px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    .top-controls {
+      display: grid;
+      grid-template-columns: minmax(240px, 1fr) minmax(220px, .7fr);
+      gap: 16px;
+      align-items: end;
+    }
+
+    .control-label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    select,
+    input[type="search"],
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+      outline: none;
+    }
+
+    select:focus,
+    input:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(26,115,232,.15);
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      min-height: 44px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 18px;
+      cursor: pointer;
+      background: #e8eaed;
+      color: var(--text);
+      transition: .15s;
+    }
+
+    button:hover:not(:disabled) { background: #dadce0; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    button.selected { background: var(--blue); color: white; }
+    button.primary { background: var(--blue); color: white; font-weight: 700; }
+    button.primary:hover:not(:disabled) { background: var(--blue-dark); }
+    button.success { background: var(--green); color: white; font-weight: 700; }
+    button.danger { background: #fce8e6; color: var(--red); font-weight: 700; }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    #periodButtons { justify-content: flex-start; }
+
+    .view-switch {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+
+    .view-switch button {
+      min-width: 160px;
+      font-weight: 800;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+
+    .view-switch button.selected {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .student-card.timeliness-clean {
+      border-color: #aecbfa;
+      background: #e8f0fe;
+    }
+
+    .student-card.timeliness-card {
+      grid-template-columns: 1fr;
+    }
+
+    .timeliness-detail {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .late-entry-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 12px 0;
+      border-bottom: 1px solid #f1f3f4;
+    }
+
+    .late-entry-row:last-child { border-bottom: none; }
+    .late-entry-note { font-weight: 700; line-height: 1.4; }
+    .late-entry-date { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .late-history-empty { color: var(--muted); padding: 14px 0; }
+    .late-modal-summary {
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      border-radius: 10px;
+      background: #e8f0fe;
+      border: 1px solid #aecbfa;
+      font-weight: 800;
+    }
+
+    .pulse-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pulse-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+      background: #f8f9fa;
+      min-width: 0;
+    }
+
+    .pulse-number {
+      display: block;
+      font-size: 30px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 7px;
+    }
+
+    .pulse-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .zero-list {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #f8f9fa;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .zero-list strong { color: var(--text); }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(180px, .65fr) minmax(220px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .student-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: stretch;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      overflow: hidden;
+      transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+    }
+
+    .student-card.complete {
+      border-color: #a8d5b5;
+      background: var(--green-bg);
+    }
+
+    .student-card.zero {
+      border-color: #ead6a2;
+      background: var(--amber-bg);
+    }
+
+    .student-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0,0,0,.08);
+    }
+
+    .student-main {
+      min-width: 0;
+      text-align: left;
+      background: transparent;
+      border-radius: 0;
+      padding: 15px 12px 15px 15px;
+    }
+
+    .student-main:hover:not(:disabled) { background: rgba(0,0,0,.035); }
+
+    .student-name {
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+
+    .student-score {
+      margin-top: 5px;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .dots {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      min-height: 14px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #9aa0a6;
+      background: transparent;
+    }
+
+    .dot.filled {
+      background: var(--blue);
+      border-color: var(--blue);
+    }
+
+    .student-card.complete .dot.filled {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .minus-button {
+      align-self: center;
+      margin-right: 10px;
+      width: 44px;
+      min-width: 44px;
+      padding: 0;
+      font-size: 24px;
+      font-weight: 700;
+      background: #f1f3f4;
+      color: var(--muted);
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      padding: 42px 20px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed #bdc1c6;
+      border-radius: 12px;
+      background: #fafafa;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(32,33,36,.55);
+      z-index: 1000;
+    }
+
+    .modal-overlay.visible { display: flex; }
+
+    .modal {
+      width: min(700px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.22);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h2 { margin: 0; font-size: 22px; }
+
+    .close-button {
+      min-height: auto;
+      padding: 5px 10px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 26px;
+    }
+
+    .modal-body { padding: 22px; }
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 0 22px 22px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 330px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    .settings-block + .settings-block {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #f1f3f4;
+    }
+
+    .period-visibility-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 4px;
+      border-bottom: 1px solid #f1f3f4;
+      cursor: pointer;
+    }
+
+    .period-visibility-option:last-child { border-bottom: none; }
+    .period-visibility-option input {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: var(--blue);
+    }
+
+    .sync-action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .sync-action-card {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #f8f9fa;
+      min-width: 0;
+    }
+
+    .sync-action-card strong { font-size: 15px; }
+    .sync-action-card span { color: var(--muted); font-size: 12px; line-height: 1.45; flex: 1; }
+    .sync-action-card button { width: 100%; }
+
+    .sync-status {
+      min-height: 22px;
+      margin: 0 0 12px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .sync-status.error { color: var(--red); }
+
+    .sync-class-list {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .sync-class-row {
+      display: grid;
+      grid-template-columns: minmax(120px, .7fr) 1fr;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .sync-class-row strong { font-size: 13px; }
+    .sync-class-meta { color: var(--muted); line-height: 1.4; }
+
+    @media (max-width: 760px) {
+      .sync-action-grid { grid-template-columns: 1fr; }
+      .sync-class-row { grid-template-columns: 1fr; }
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 25px;
+      transform: translate(-50%, 15px);
+      padding: 11px 18px;
+      background: #202124;
+      color: white;
+      border-radius: 30px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .2s;
+      z-index: 2000;
+      max-width: calc(100% - 30px);
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 820px) {
+      .top-controls,
+      .toolbar { grid-template-columns: 1fr; }
+      .toolbar-actions { justify-content: flex-start; }
+      .pulse-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .dashboard-back { position: static; margin-bottom: 14px; }
+      .app-header { gap: 8px; margin-bottom: 16px; }
+      .app-header h1 { font-size: 23px; }
+      .bjh-logo { width: 46px; }
+      #periodButtons button { flex: 1 1 28%; }
+      .pulse-grid { grid-template-columns: 1fr 1fr; }
+      .student-grid { grid-template-columns: 1fr; }
+      .toolbar-actions button { flex: 1 1 45%; }
+      .modal-footer button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+<a class="dashboard-back" href="index.html">← Dashboard</a>
+
+<div class="app">
+  <div class="app-header">
+    <img src="bjh-logo.png" class="bjh-logo" alt="BJH Bobcat">
+    <h1>Participation Tracker</h1>
+    <img src="bjh-logo.png" class="bjh-logo right" alt="BJH Bobcat">
+  </div>
+
+  <div class="global-bell-row"><div data-bell-mini></div></div>
+
+  <div class="view-switch" aria-label="Tracker view">
+    <button id="participationViewButton" class="selected" type="button">Participation</button>
+    <button id="timelinessViewButton" type="button">Timeliness</button>
+  </div>
+
+  <div class="section">
+    <div class="top-controls">
+      <div>
+        <label id="termLabel" class="control-label" for="termSelect">Grading Term</label>
+        <select id="termSelect"></select>
+      </div>
+      <div>
+        <div id="goalLabel" class="control-label">Participation Goal</div>
+        <div id="goalSummary" style="min-height:44px;display:flex;align-items:center;font-size:18px;font-weight:800;"></div>
+      </div>
+    </div>
+    <div id="termHelp" class="small-note">Each term keeps its own participation totals, so switching terms never erases earlier records.</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Period</div>
+    <div id="periodButtons" class="button-row"></div>
+  </div>
+
+  <div class="section">
+    <div id="pulseTitle" class="section-title">Participation Pulse</div>
+    <div class="pulse-grid">
+      <div class="pulse-card"><span id="pulseTotal" class="pulse-number">0</span><span id="pulseTotalLabel" class="pulse-label">Students</span></div>
+      <div class="pulse-card"><span id="pulseComplete" class="pulse-number">0</span><span id="pulseCompleteLabel" class="pulse-label">Goal Complete</span></div>
+      <div class="pulse-card"><span id="pulseProgress" class="pulse-number">0</span><span id="pulseProgressLabel" class="pulse-label">In Progress</span></div>
+      <div class="pulse-card"><span id="pulseZero" class="pulse-number">0</span><span id="pulseZeroLabel" class="pulse-label">0 Points</span></div>
+    </div>
+    <div id="zeroList" class="zero-list"></div>
+  </div>
+
+  <div class="section">
+    <div class="toolbar">
+      <div>
+        <label id="sortLabel" class="control-label" for="sortSelect">Sort Students</label>
+        <select id="sortSelect">
+          <option value="roster">Roster Order</option>
+          <option value="low">Participation: Low → High</option>
+          <option value="high">Participation: High → Low</option>
+          <option value="az">Name: A → Z</option>
+        </select>
+      </div>
+      <div>
+        <label class="control-label" for="searchInput">Find Student</label>
+        <input id="searchInput" type="search" placeholder="Search by name..." autocomplete="off">
+      </div>
+      <div class="toolbar-actions">
+        <button id="undoButton" type="button">↶ Undo Last</button>
+        <button id="syncGradesButton" class="primary" type="button">Sync Grades to Classroom</button>
+        <button id="settingsButton" type="button">⚙ Participation Settings</button>
+        <button id="exportButton" type="button">Export CSV</button>
+      </div>
+    </div>
+    <div id="trackerHelp" class="small-note">Tap a student card to add one participation point. Use the − button only for corrections. Points may exceed the goal (for example, 7/5).</div>
+  </div>
+
+  <div class="section">
+    <div id="studentGrid" class="student-grid"></div>
+  </div>
+</div>
+
+<div id="syncModal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="syncModalTitle">
+    <div class="modal-header">
+      <div>
+        <h2 id="syncModalTitle">Sync Grades to Classroom</h2>
+        <div id="syncSummary" class="small-note" style="margin-top:5px;"></div>
+      </div>
+      <button id="closeSyncModal" class="close-button" type="button" aria-label="Close sync window">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="sync-action-grid">
+        <div class="sync-action-card">
+          <strong>Publish Assignment</strong>
+          <span>Makes the participation assignment visible to students. This does not send grades.</span>
+          <button id="publishAssignmentButton" type="button">Publish Assignment</button>
+        </div>
+        <div class="sync-action-card">
+          <strong>Sync Draft Grades</strong>
+          <span>Copies current participation scores into Classroom for teacher review. Students do not see draft grades.</span>
+          <button id="syncDraftGradesButton" type="button">Sync Draft Grades</button>
+        </div>
+        <div class="sync-action-card">
+          <strong>Return Grades</strong>
+          <span>Sends current participation scores to students. Previously returned grades are updated automatically.</span>
+          <button id="returnGradesButton" class="primary" type="button">Return Grades</button>
+        </div>
+      </div>
+      <div id="syncStatus" class="sync-status" aria-live="polite"></div>
+      <div id="syncClassList" class="sync-class-list"></div>
+      <div class="small-note">Students must open the published participation assignment and click <strong>Turn In</strong> once before Classroom can accept a grade from the Dashboard.</div>
+    </div>
+  </div>
+</div>
+
+<div id="lateModal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lateModalTitle">
+    <div class="modal-header">
+      <div>
+        <h2 id="lateModalTitle">Timeliness</h2>
+        <div id="lateModalSubtitle" class="small-note" style="margin-top:5px;"></div>
+      </div>
+      <button id="closeLateModal" class="close-button" type="button" aria-label="Close timeliness window">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="lateModalSummary" class="late-modal-summary"></div>
+      <label class="control-label" for="lateEntryInput">Late assignment / note</label>
+      <input id="lateEntryInput" type="text" maxlength="180" placeholder="e.g. Business Letter — submitted late" autocomplete="off">
+      <div class="button-row" style="margin-top:10px;">
+        <button id="addLateEntryButton" class="primary" type="button">Record Late Assignment</button>
+      </div>
+      <div class="section-title" style="margin-top:24px;">Late Assignment History</div>
+      <div id="lateHistory"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" aria-live="polite"></div>
+
+<script src="shared/dashboard-data.js"></script>
+<script src="shared/classroom-service.js"></script>
+<script src="shared/bell-service.js"></script>
+  <script src="shared/reminder-service.js"></script>
+
+<script>
+(() => {
+  "use strict";
+
+  const UI_STORAGE_KEY = "participationTracker.ui.v2";
+  const PERIODS = ["1", "2", "3", "4", "5", "6", "7"];
+
+  function loadUIState() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(UI_STORAGE_KEY) || "{}");
+
+      return {
+        undoStack: Array.isArray(parsed.undoStack) ? parsed.undoStack.slice(-50) : []
+      };
+    } catch (error) {
+      console.warn("Participation Tracker UI state could not be loaded.", error);
+      return { undoStack: [] };
+    }
+  }
+
+  function saveUIState() {
+    localStorage.setItem(UI_STORAGE_KEY, JSON.stringify(uiState));
+  }
+
+  let uiState = loadUIState();
+  let currentView = "participation";
+  let lateModalStudent = null;
+
+  const el = id => document.getElementById(id);
+  const periodButtons = el("periodButtons");
+  const termSelect = el("termSelect");
+  const goalSummary = el("goalSummary");
+  const sortSelect = el("sortSelect");
+  const searchInput = el("searchInput");
+  const studentGrid = el("studentGrid");
+  const pulseTotal = el("pulseTotal");
+  const pulseComplete = el("pulseComplete");
+  const pulseProgress = el("pulseProgress");
+  const pulseZero = el("pulseZero");
+  const zeroList = el("zeroList");
+  const undoButton = el("undoButton");
+  const syncGradesButton = el("syncGradesButton");
+  const syncModal = el("syncModal");
+  const syncSummary = el("syncSummary");
+  const syncStatus = el("syncStatus");
+  const syncClassList = el("syncClassList");
+  const publishAssignmentButton = el("publishAssignmentButton");
+  const syncDraftGradesButton = el("syncDraftGradesButton");
+  const returnGradesButton = el("returnGradesButton");
+  const toast = el("toast");
+  const participationViewButton = el("participationViewButton");
+  const timelinessViewButton = el("timelinessViewButton");
+  const termLabel = el("termLabel");
+  const goalLabel = el("goalLabel");
+  const termHelp = el("termHelp");
+  const pulseTitle = el("pulseTitle");
+  const pulseTotalLabel = el("pulseTotalLabel");
+  const pulseCompleteLabel = el("pulseCompleteLabel");
+  const pulseProgressLabel = el("pulseProgressLabel");
+  const pulseZeroLabel = el("pulseZeroLabel");
+  const trackerHelp = el("trackerHelp");
+  const lateModal = el("lateModal");
+  const lateModalTitle = el("lateModalTitle");
+  const lateModalSubtitle = el("lateModalSubtitle");
+  const lateModalSummary = el("lateModalSummary");
+  const lateEntryInput = el("lateEntryInput");
+  const lateHistory = el("lateHistory");
+
+  function activeTermId() {
+    return currentView === "timeliness"
+      ? DashboardData.getActiveTimelinessTermId()
+      : DashboardData.getActiveParticipationTermId();
+  }
+
+  function activeGoal() {
+    return DashboardData.getParticipationGoal(activeTermId());
+  }
+
+  function currentPeriod() {
+    const activeClasses = DashboardData.getClasses({ activeOnly: true });
+    const current = DashboardData.getCurrentClassId();
+    if (activeClasses.some(item => item.id === current)) return current;
+    return activeClasses[0]?.id || "1";
+  }
+
+  function classLabel(period) {
+    return DashboardData.getClass(period)?.name || `Period ${period}`;
+  }
+
+  function currentRoster() {
+    return DashboardData.getStudents(currentPeriod());
+  }
+
+  function pointsFor(student, period = currentPeriod(), termId = activeTermId()) {
+    const studentRef = student && typeof student === "object" ? student.id : student;
+    return DashboardData.getParticipationPoints(period, studentRef, termId);
+  }
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(showToast.timeout);
+    showToast.timeout = setTimeout(() => toast.classList.remove("show"), 1800);
+  }
+
+  function buildTerms() {
+    const terms = currentView === "timeliness"
+      ? DashboardData.getTimelinessTerms()
+      : DashboardData.getParticipationTerms();
+    const active = activeTermId();
+    termSelect.innerHTML = "";
+
+    terms.forEach(term => {
+      const option = document.createElement("option");
+      option.value = term.id;
+      option.textContent = term.label;
+      termSelect.appendChild(option);
+    });
+
+    termSelect.value = active;
+  }
+
+  function buildPeriodButtons() {
+    const classes = DashboardData.getClasses({ activeOnly: true });
+    const selected = currentPeriod();
+    periodButtons.innerHTML = "";
+
+    classes.forEach(classInfo => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = classInfo.name;
+      if (classInfo.id === selected) button.classList.add("selected");
+
+      button.addEventListener("click", () => {
+        DashboardData.setCurrentClass(classInfo.id);
+        buildPeriodButtons();
+        render();
+      });
+
+      periodButtons.appendChild(button);
+    });
+  }
+
+  function setPoints(student, nextPoints, options = {}) {
+    const period = options.period || currentPeriod();
+    const termId = options.termId || activeTermId();
+    const studentRef = student && typeof student === "object" ? student.id : student;
+    const studentRecord = student && typeof student === "object"
+      ? student
+      : DashboardData.getStudent(period, studentRef);
+    const previous = pointsFor(studentRef, period, termId);
+    const next = Math.max(0, Math.floor(Number(nextPoints) || 0));
+
+    DashboardData.setParticipationPoints(period, studentRef, next, termId);
+
+    if (options.recordUndo !== false && previous !== next) {
+      uiState.undoStack.push({
+        type: "participation",
+        period,
+        termId,
+        studentId: studentRecord?.id || String(studentRef || ""),
+        studentName: studentRecord?.name || String(studentRef || ""),
+        previous
+      });
+      if (uiState.undoStack.length > 50) {
+        uiState.undoStack.splice(0, uiState.undoStack.length - 50);
+      }
+      saveUIState();
+    }
+
+    return next;
+  }
+
+  function renderDots(container, points, goal) {
+    container.innerHTML = "";
+    const dotCount = Math.min(goal, 20);
+
+    for (let i = 0; i < dotCount; i += 1) {
+      const dot = document.createElement("span");
+      dot.className = "dot" + (i < Math.min(points, goal) ? " filled" : "");
+      dot.setAttribute("aria-hidden", "true");
+      container.appendChild(dot);
+    }
+  }
+
+  function rosterWithScores() {
+    const roster = currentRoster();
+    return roster.map((student, index) => ({
+      ...student,
+      index,
+      points: pointsFor(student)
+    }));
+  }
+
+  function timelinessRoster() {
+    return DashboardData.getTimelinessForClass(currentPeriod(), activeTermId())
+      .map((student, index) => ({ ...student, index }));
+  }
+
+  function renderPulse() {
+    if (currentView === "timeliness") {
+      const students = timelinessRoster();
+      const policy = DashboardData.getTimelinessPolicy(activeTermId());
+      const clean = students.filter(item => item.lateCount === 0);
+      const grace = policy.graceEnabled ? students.filter(item => item.lateCount > 0 && item.deductedPoints === 0) : [];
+      const affected = students.filter(item => item.lateCount > 0);
+      const deducted = students.filter(item => item.deductedPoints > 0);
+      pulseTotal.textContent = students.length;
+      pulseComplete.textContent = clean.length;
+      pulseProgress.textContent = policy.graceEnabled ? grace.length : affected.length;
+      pulseZero.textContent = deducted.length;
+      pulseTitle.textContent = "Timeliness Pulse";
+      pulseTotalLabel.textContent = "Students";
+      pulseCompleteLabel.textContent = "No Late Work";
+      pulseProgressLabel.textContent = policy.graceEnabled ? "Grace Used" : "Late Work";
+      pulseZeroLabel.textContent = "Points Deducted";
+      if (!students.length) {
+        zeroList.innerHTML = "<strong>No roster yet.</strong> Add students in Dashboard Settings to begin tracking timeliness.";
+      } else if (!students.some(item => item.lateCount > 0)) {
+        zeroList.innerHTML = "<strong>No late submissions recorded.</strong> Everyone currently has a perfect Timeliness record.";
+      } else {
+        const affected = students.filter(item => item.lateCount > 0);
+        zeroList.innerHTML = `<strong>Students with late work:</strong> ${affected.map(item => `${item.name} (${item.lateCount})`).join(" • ")}`;
+      }
+      return;
+    }
+
+    const scores = rosterWithScores();
+    const goal = activeGoal();
+    const complete = scores.filter(item => item.points >= goal).length;
+    const progress = scores.filter(item => item.points > 0 && item.points < goal).length;
+    const zero = scores.filter(item => item.points === 0);
+
+    pulseTotal.textContent = scores.length;
+    pulseComplete.textContent = complete;
+    pulseProgress.textContent = progress;
+    pulseZero.textContent = zero.length;
+    pulseTitle.textContent = "Participation Pulse";
+    pulseTotalLabel.textContent = "Students";
+    pulseCompleteLabel.textContent = "Goal Complete";
+    pulseProgressLabel.textContent = "In Progress";
+    pulseZeroLabel.textContent = "0 Points";
+
+    if (scores.length === 0) {
+      zeroList.innerHTML = "<strong>No roster yet.</strong> Add students in Dashboard Settings to begin tracking participation.";
+      return;
+    }
+
+    if (zero.length === 0) {
+      zeroList.innerHTML = "<strong>Everyone has participated.</strong> Nice distribution across the class.";
+      return;
+    }
+
+    zeroList.innerHTML = `<strong>Students with 0 points:</strong> ${zero.map(item => item.name).join(" • ")}`;
+  }
+
+  function rebuildSortOptions() {
+    const value = sortSelect.value;
+    sortSelect.innerHTML = "";
+    const options = currentView === "timeliness"
+      ? [
+          ["roster", "Roster Order"],
+          ["low", "Timeliness: Low → High"],
+          ["high", "Late Assignments: High → Low"],
+          ["az", "Name: A → Z"]
+        ]
+      : [
+          ["roster", "Roster Order"],
+          ["low", "Participation: Low → High"],
+          ["high", "Participation: High → Low"],
+          ["az", "Name: A → Z"]
+        ];
+    options.forEach(([optionValue, text]) => {
+      const option = document.createElement("option");
+      option.value = optionValue;
+      option.textContent = text;
+      sortSelect.appendChild(option);
+    });
+    sortSelect.value = options.some(([optionValue]) => optionValue === value) ? value : "roster";
+  }
+
+  function renderStudents() {
+    const query = searchInput.value.trim().toLocaleLowerCase();
+    let students = currentView === "timeliness" ? timelinessRoster() : rosterWithScores();
+    const goal = currentView === "participation" ? activeGoal() : 0;
+
+    if (query) students = students.filter(student => student.name.toLocaleLowerCase().includes(query));
+
+    if (currentView === "timeliness") {
+      if (sortSelect.value === "low") students.sort((a, b) => a.score - b.score || b.lateCount - a.lateCount || a.index - b.index);
+      else if (sortSelect.value === "high") students.sort((a, b) => b.lateCount - a.lateCount || a.index - b.index);
+      else if (sortSelect.value === "az") students.sort((a, b) => a.name.localeCompare(b.name));
+      else students.sort((a, b) => a.index - b.index);
+    } else {
+      if (sortSelect.value === "low") students.sort((a, b) => a.points - b.points || a.index - b.index);
+      else if (sortSelect.value === "high") students.sort((a, b) => b.points - a.points || a.index - b.index);
+      else if (sortSelect.value === "az") students.sort((a, b) => a.name.localeCompare(b.name));
+      else students.sort((a, b) => a.index - b.index);
+    }
+
+    studentGrid.innerHTML = "";
+
+    if (currentRoster().length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.innerHTML = "<strong>No students yet.</strong><br>Add students to this class in Dashboard Settings.";
+      studentGrid.appendChild(empty);
+      return;
+    }
+
+    if (students.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "No students match your search.";
+      studentGrid.appendChild(empty);
+      return;
+    }
+
+    students.forEach(student => {
+      const card = document.createElement("div");
+      card.className = "student-card";
+
+      const main = document.createElement("button");
+      main.type = "button";
+      main.className = "student-main";
+
+      const name = document.createElement("div");
+      name.className = "student-name";
+      name.textContent = student.name;
+
+      const score = document.createElement("div");
+      score.className = "student-score";
+
+      if (currentView === "timeliness") {
+        card.classList.add("timeliness-card");
+        if (student.lateCount === 0) card.classList.add("timeliness-clean");
+        score.textContent = `${student.score} / ${student.startingPoints}`;
+        const detail = document.createElement("div");
+        detail.className = "timeliness-detail";
+        if (student.lateCount === 0) detail.textContent = "No late assignments";
+        else if (student.graceEnabled && student.deductedPoints === 0) detail.textContent = `${student.lateCount} late assignment${student.lateCount === 1 ? "" : "s"} · grace used`;
+        else detail.textContent = `${student.lateCount} late assignment${student.lateCount === 1 ? "" : "s"} · −${student.deductedPoints} point${student.deductedPoints === 1 ? "" : "s"}`;
+        main.setAttribute("aria-label", `Open Timeliness record for ${student.name}. ${student.lateCount} late assignments.`);
+        main.append(name, score, detail);
+        main.addEventListener("click", () => openLateModal(student));
+        card.append(main);
+      } else {
+        if (student.points === 0) card.classList.add("zero");
+        if (student.points >= goal) card.classList.add("complete");
+        main.setAttribute("aria-label", `Add participation point to ${student.name}. Currently ${student.points} of ${goal}.`);
+        score.textContent = `${student.points} / ${goal}${student.points >= goal ? " ✓" : ""}`;
+        const dots = document.createElement("div");
+        dots.className = "dots";
+        renderDots(dots, student.points, goal);
+        main.append(name, score, dots);
+        main.addEventListener("click", () => {
+          const next = setPoints(student, student.points + 1);
+          showToast(`+1 ${student.name} — now ${next}/${goal}`);
+          render();
+        });
+        const minus = document.createElement("button");
+        minus.type = "button";
+        minus.className = "minus-button";
+        minus.textContent = "−";
+        minus.disabled = student.points === 0;
+        minus.setAttribute("aria-label", `Remove one participation point from ${student.name}`);
+        minus.addEventListener("click", event => {
+          event.stopPropagation();
+          const next = setPoints(student, student.points - 1);
+          showToast(`−1 ${student.name} — now ${next}/${goal}`);
+          render();
+        });
+        card.append(main, minus);
+      }
+      studentGrid.appendChild(card);
+    });
+  }
+
+  function renderLateModal() {
+    if (!lateModalStudent) return;
+    const record = DashboardData.getTimelinessRecord(currentPeriod(), lateModalStudent.id, activeTermId());
+    lateModalTitle.textContent = lateModalStudent.name;
+    lateModalSubtitle.textContent = `${classLabel(currentPeriod())} · ${DashboardData.getTimelinessTerms().find(term => term.id === activeTermId())?.label || activeTermId()}`;
+    lateModalSummary.textContent = `${record.score}/${record.startingPoints} · ${record.lateCount} late assignment${record.lateCount === 1 ? "" : "s"} · ${record.deductedPoints ? `−${record.deductedPoints} point${record.deductedPoints === 1 ? "" : "s"}` : record.lateCount && record.graceEnabled ? "grace used" : record.lateCount ? "no deduction" : "perfect record"}`;
+    lateHistory.innerHTML = "";
+    if (!record.entries.length) {
+      const empty = document.createElement("div");
+      empty.className = "late-history-empty";
+      empty.textContent = "No late assignments recorded this semester.";
+      lateHistory.appendChild(empty);
+      return;
+    }
+    [...record.entries].reverse().forEach(entry => {
+      const row = document.createElement("div");
+      row.className = "late-entry-row";
+      const copy = document.createElement("div");
+      const note = document.createElement("div");
+      note.className = "late-entry-note";
+      note.textContent = entry.note;
+      const date = document.createElement("div");
+      date.className = "late-entry-date";
+      const parsed = new Date(entry.createdAt);
+      date.textContent = Number.isNaN(parsed.getTime()) ? "Recorded previously" : parsed.toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+      copy.append(note, date);
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "danger";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", () => {
+        if (!window.confirm(`Delete this late-work entry for ${lateModalStudent.name}?`)) return;
+        DashboardData.removeTimelinessEntry(currentPeriod(), lateModalStudent.id, entry.id, activeTermId());
+        renderLateModal();
+        render();
+      });
+      row.append(copy, remove);
+      lateHistory.appendChild(row);
+    });
+  }
+
+  function openLateModal(student) {
+    lateModalStudent = student;
+    lateEntryInput.value = "";
+    renderLateModal();
+    openModal(lateModal);
+    window.setTimeout(() => lateEntryInput.focus(), 0);
+  }
+
+  function addLateEntry() {
+    if (!lateModalStudent) return;
+    const note = lateEntryInput.value.trim();
+    if (!note) {
+      showToast("Enter the late assignment or a short note");
+      lateEntryInput.focus();
+      return;
+    }
+    try {
+      const entry = DashboardData.addTimelinessEntry(currentPeriod(), lateModalStudent.id, note, activeTermId());
+      uiState.undoStack.push({
+        type: "timeliness-add",
+        period: currentPeriod(),
+        termId: activeTermId(),
+        studentId: lateModalStudent.id,
+        studentName: lateModalStudent.name,
+        entryId: entry.id
+      });
+      if (uiState.undoStack.length > 50) uiState.undoStack.splice(0, uiState.undoStack.length - 50);
+      saveUIState();
+      lateEntryInput.value = "";
+      renderLateModal();
+      render();
+      showToast(`Late assignment recorded for ${lateModalStudent.name}`);
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Late assignment could not be recorded");
+    }
+  }
+
+  function render() {
+    participationViewButton.classList.toggle("selected", currentView === "participation");
+    timelinessViewButton.classList.toggle("selected", currentView === "timeliness");
+    rebuildSortOptions();
+
+    if (currentView === "timeliness") {
+      const policy = DashboardData.getTimelinessPolicy(activeTermId());
+      termLabel.textContent = "Semester";
+      goalLabel.textContent = "Timeliness Score";
+      goalSummary.textContent = `${policy.startingPoints}/${policy.startingPoints} start · ${policy.minimumPoints}/${policy.startingPoints} floor`;
+      termHelp.textContent = policy.graceEnabled
+        ? `The first recorded late submission is a grace occurrence. Each additional late assignment deducts ${policy.deductionPerLateSubmission} point, regardless of how late it is.`
+        : `Every recorded late assignment deducts ${policy.deductionPerLateSubmission} point, regardless of how late it is.`;
+      trackerHelp.textContent = "Tap a student card to record a late assignment or review that student’s Timeliness history. Blue tiles have no late assignments recorded yet.";
+      el("settingsButton").textContent = "⚙ Timeliness Settings";
+      syncGradesButton.textContent = "Sync Timeliness Grades";
+    } else {
+      const goal = activeGoal();
+      termLabel.textContent = "Grading Term";
+      goalLabel.textContent = "Participation Goal";
+      goalSummary.textContent = `${goal} point${goal === 1 ? "" : "s"} = full credit`;
+      termHelp.textContent = "Each term keeps its own participation totals, so switching terms never erases earlier records.";
+      trackerHelp.textContent = "Tap a student card to add one participation point. Use the − button only for corrections. Points may exceed the goal (for example, 7/5).";
+      el("settingsButton").textContent = "⚙ Participation Settings";
+      syncGradesButton.textContent = "Sync Grades to Classroom";
+    }
+
+    renderPulse();
+    renderStudents();
+    undoButton.disabled = uiState.undoStack.length === 0;
+    el("exportButton").disabled = currentRoster().length === 0;
+  }
+
+  function openModal(modal) {
+    modal.classList.add("visible");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeModal(modal) {
+    modal.classList.remove("visible");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  function showSyncStatus(message, isError = false) {
+    syncStatus.textContent = message;
+    syncStatus.classList.toggle("error", isError);
+  }
+
+  function getGoogleGradeClasses() {
+    const mappings = DashboardData.getClassroomMappings();
+    return DashboardData.getClasses({ activeOnly: true }).filter(classInfo =>
+      classInfo.rosterSource === "googleClassroom" && Boolean(mappings[classInfo.id]?.courseId)
+    );
+  }
+
+  function getTrackerTermLabel(termId) {
+    const terms = currentView === "timeliness" ? DashboardData.getTimelinessTerms() : DashboardData.getParticipationTerms();
+    return terms.find(term => term.id === termId)?.label || termId;
+  }
+
+  function trackerName() { return currentView === "timeliness" ? "Timeliness" : "Participation"; }
+  function getTrackerGradeSettings(termId) { return currentView === "timeliness" ? DashboardData.getTimelinessGradeSync(termId) : DashboardData.getParticipationGradeSync(termId); }
+  function getTrackerGradeAssignment(classId, termId) { return currentView === "timeliness" ? DashboardData.getTimelinessGradeAssignment(classId, termId) : DashboardData.getParticipationGradeAssignment(classId, termId); }
+  function setTrackerGradeAssignment(classId, assignment, termId) { return currentView === "timeliness" ? DashboardData.setTimelinessGradeAssignment(classId, assignment, termId) : DashboardData.setParticipationGradeAssignment(classId, assignment, termId); }
+  function getTrackerGradePreview(classId, termId) { return currentView === "timeliness" ? DashboardData.getTimelinessGradePreview(classId, termId) : DashboardData.getParticipationGradePreview(classId, termId); }
+  function markTrackerGradeSynced(classId, termId, summary) { return currentView === "timeliness" ? DashboardData.markTimelinessGradeSynced(classId, termId, summary) : DashboardData.markParticipationGradeSynced(classId, termId, summary); }
+
+  function getGradeSyncContext() {
+    const termId = activeTermId();
+    return {
+      termId,
+      termLabel: getTrackerTermLabel(termId),
+      settings: getTrackerGradeSettings(termId),
+      mappings: DashboardData.getClassroomMappings(),
+      classes: getGoogleGradeClasses()
+    };
+  }
+
+  async function ensureClassroomConnected() {
+    if (ClassroomService.isConnected()) return true;
+    if (!ClassroomService.getClientId()) {
+      showSyncStatus("Google Classroom needs to be set up in Dashboard Settings first.", true);
+      return false;
+    }
+
+    try {
+      showSyncStatus("Connecting to Google Classroom…");
+      await ClassroomService.connect();
+      return true;
+    } catch (error) {
+      console.error(error);
+      showSyncStatus(error.message || "Google Classroom could not be connected.", true);
+      return false;
+    }
+  }
+
+  async function runInBatches(items, worker, batchSize = 8) {
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      await Promise.all(batch.map(worker));
+    }
+  }
+
+  async function refreshSyncOverview() {
+    const { termLabel, settings, mappings, classes } = getGradeSyncContext();
+    syncClassList.innerHTML = "";
+
+    let assignmentCount = 0;
+    let publishedCount = 0;
+    let readyCount = 0;
+    let returnedCount = 0;
+    let waitingCount = 0;
+    let issueCount = 0;
+
+    for (const classInfo of classes) {
+      const mapping = mappings[classInfo.id];
+      const assignment = settings.assignments?.[classInfo.id] || null;
+      const validAssignment = assignment && assignment.courseId === mapping.courseId;
+      const row = document.createElement("div");
+      row.className = "sync-class-row";
+
+      const name = document.createElement("strong");
+      name.textContent = classInfo.name || `Period ${classInfo.id}`;
+
+      const meta = document.createElement("div");
+      meta.className = "sync-class-meta";
+
+      if (!validAssignment) {
+        meta.textContent = "Assignment setup needed in Dashboard Settings.";
+        issueCount += 1;
+      } else {
+        assignmentCount += 1;
+        if (assignment.state !== "PUBLISHED") {
+          meta.textContent = "Draft assignment · Publish Assignment before syncing grades.";
+        } else {
+          publishedCount += 1;
+          try {
+            const submissions = await ClassroomService.listStudentSubmissions(
+              mapping.courseId,
+              assignment.courseWorkId
+            );
+            const byUserId = new Map(submissions.map(submission => [submission.userId, submission]));
+            const students = getTrackerGradePreview(classInfo.id, activeTermId())
+              .filter(student => student.eligible);
+            let classReady = 0;
+            let classReturned = 0;
+            let classWaiting = 0;
+
+            students.forEach(student => {
+              const submission = byUserId.get(student.googleId);
+              if (!submission || !["TURNED_IN", "RETURNED"].includes(submission.state)) {
+                classWaiting += 1;
+              } else if (submission.state === "RETURNED") {
+                classReturned += 1;
+              } else {
+                classReady += 1;
+              }
+            });
+
+            readyCount += classReady;
+            returnedCount += classReturned;
+            waitingCount += classWaiting;
+            meta.textContent = `${classReady} turned in · ${classReturned} returned · ${classWaiting} waiting for Turn In`;
+          } catch (error) {
+            console.error(error);
+            issueCount += 1;
+            meta.textContent = "Could not check Classroom submissions.";
+          }
+        }
+      }
+
+      row.append(name, meta);
+      syncClassList.appendChild(row);
+    }
+
+    if (!classes.length) {
+      const row = document.createElement("div");
+      row.className = "sync-class-row";
+      row.innerHTML = "<strong>No Classroom classes</strong><div class=\"sync-class-meta\">Map Google Classroom classes in Dashboard Settings first.</div>";
+      syncClassList.appendChild(row);
+    }
+
+    syncSummary.textContent =
+      `${termLabel} · ${assignmentCount} assignment${assignmentCount === 1 ? "" : "s"} ready · ` +
+      `${readyCount} turned in · ${returnedCount} returned · ${waitingCount} waiting`;
+
+    publishAssignmentButton.disabled = !assignmentCount || publishedCount === assignmentCount;
+    syncDraftGradesButton.disabled = !publishedCount;
+    returnGradesButton.disabled = !publishedCount;
+
+    if (issueCount) {
+      showSyncStatus(`${issueCount} class${issueCount === 1 ? " has" : "es have"} a Classroom setup issue.`, true);
+    }
+  }
+
+  async function openSyncModal() {
+    const label = trackerName();
+    el("syncModalTitle").textContent = `Sync ${label} Grades to Classroom`;
+    publishAssignmentButton.closest(".sync-action-card").querySelector("span").textContent = `Makes the ${label.toLowerCase()} assignment visible to students. This does not send grades.`;
+    syncDraftGradesButton.closest(".sync-action-card").querySelector("span").textContent = `Copies current ${label.toLowerCase()} scores into Classroom for teacher review. Students do not see draft grades.`;
+    returnGradesButton.closest(".sync-action-card").querySelector("span").textContent = `Sends current ${label.toLowerCase()} scores to students. Previously returned grades are updated automatically.`;
+    openModal(syncModal);
+    syncSummary.textContent = "Checking Classroom…";
+    syncClassList.innerHTML = "";
+    publishAssignmentButton.disabled = true;
+    syncDraftGradesButton.disabled = true;
+    returnGradesButton.disabled = true;
+    showSyncStatus("");
+
+    if (!getGoogleGradeClasses().length) {
+      showSyncStatus("Map at least one Google Classroom class in Dashboard Settings first.", true);
+      return;
+    }
+
+    if (!(await ensureClassroomConnected())) return;
+    await refreshSyncOverview();
+  }
+
+  async function publishParticipationAssignments() {
+    if (!(await ensureClassroomConnected())) return;
+    const { termId, settings, mappings, classes } = getGradeSyncContext();
+    const unpublished = classes.filter(classInfo => {
+      const assignment = settings.assignments?.[classInfo.id];
+      return assignment && assignment.courseId === mappings[classInfo.id]?.courseId && assignment.state !== "PUBLISHED";
+    });
+
+    if (!unpublished.length) {
+      showSyncStatus(`All ${trackerName()} assignments are already published.`);
+      return;
+    }
+
+    if (!window.confirm(
+      `Publish the ${trackerName()} assignment to ${unpublished.length} class${unpublished.length === 1 ? "" : "es"}?\n\nStudents will be able to see the assignment. This does not return any grades.`
+    )) return;
+
+    publishAssignmentButton.disabled = true;
+    const failures = [];
+    let published = 0;
+
+    for (const classInfo of unpublished) {
+      const assignment = getTrackerGradeAssignment(classInfo.id, termId);
+      const mapping = mappings[classInfo.id];
+      try {
+        const courseWork = await ClassroomService.updateCourseWork(
+          mapping.courseId,
+          assignment.courseWorkId,
+          { state: "PUBLISHED" }
+        );
+        setTrackerGradeAssignment(
+          classInfo.id,
+          {
+            ...assignment,
+            title: courseWork.title || assignment.title,
+            maxPoints: courseWork.maxPoints || assignment.maxPoints,
+            alternateLink: courseWork.alternateLink || assignment.alternateLink || "",
+            state: "PUBLISHED"
+          },
+          termId
+        );
+        published += 1;
+      } catch (error) {
+        console.error(error);
+        failures.push(`${classInfo.name}: ${error.message || "failed"}`);
+      }
+    }
+
+    await refreshSyncOverview();
+    showSyncStatus(
+      failures.length
+        ? `${published} assignment${published === 1 ? "" : "s"} published. Errors: ${failures.join(" | ")}`
+        : `${published} assignment${published === 1 ? "" : "s"} published. Students can now open the assignment and click Turn In.`,
+      failures.length > 0
+    );
+  }
+
+  async function syncDraftParticipationGrades() {
+    if (!(await ensureClassroomConnected())) return;
+    const { termId, termLabel, settings, mappings, classes } = getGradeSyncContext();
+    const publishedClasses = classes.filter(classInfo => {
+      const assignment = settings.assignments?.[classInfo.id];
+      return assignment && assignment.courseId === mappings[classInfo.id]?.courseId && assignment.state === "PUBLISHED";
+    });
+
+    if (!publishedClasses.length) {
+      showSyncStatus(`Publish the ${trackerName()} assignment first.`, true);
+      return;
+    }
+
+    if (!window.confirm(
+      `Sync ${termLabel} ${trackerName().toLowerCase()} as draft grades?\n\nDraft grades are visible only to teachers. Students who have not clicked Turn In yet will be skipped.`
+    )) return;
+
+    syncDraftGradesButton.disabled = true;
+    let synced = 0;
+    let waiting = 0;
+    let missing = 0;
+    const failures = [];
+
+    for (const classInfo of publishedClasses) {
+      const mapping = mappings[classInfo.id];
+      const assignment = settings.assignments[classInfo.id];
+      const students = getTrackerGradePreview(classInfo.id, termId)
+        .filter(student => student.eligible);
+      let classSynced = 0;
+      let classWaiting = 0;
+      let classMissing = 0;
+      let classFailed = 0;
+
+      try {
+        const submissions = await ClassroomService.listStudentSubmissions(mapping.courseId, assignment.courseWorkId);
+        const byUserId = new Map(submissions.map(submission => [submission.userId, submission]));
+        const jobs = [];
+
+        students.forEach(student => {
+          const submission = byUserId.get(student.googleId);
+          if (!submission) {
+            classMissing += 1;
+            return;
+          }
+          if (!["TURNED_IN", "RETURNED"].includes(submission.state)) {
+            classWaiting += 1;
+            return;
+          }
+          jobs.push({ student, submission });
+        });
+
+        await runInBatches(jobs, async job => {
+          try {
+            await ClassroomService.setDraftGrade(
+              mapping.courseId,
+              assignment.courseWorkId,
+              job.submission.id,
+              job.student.classroomGrade
+            );
+            classSynced += 1;
+          } catch (error) {
+            console.error(error);
+            classFailed += 1;
+            failures.push(`${classInfo.name}: ${job.student.name} — ${error.message || "failed"}`);
+          }
+        });
+      } catch (error) {
+        console.error(error);
+        classFailed = students.length;
+        failures.push(`${classInfo.name}: ${error.message || "failed"}`);
+      }
+
+      synced += classSynced;
+      waiting += classWaiting;
+      missing += classMissing;
+      markTrackerGradeSynced(classInfo.id, termId, {
+        syncedCount: classSynced,
+        missingSubmissionCount: classWaiting + classMissing,
+        failedCount: classFailed,
+        at: new Date().toISOString()
+      });
+    }
+
+    await refreshSyncOverview();
+    const parts = [`${synced} draft grade${synced === 1 ? "" : "s"} synced.`];
+    if (waiting) parts.push(`${waiting} waiting for Turn In.`);
+    if (missing) parts.push(`${missing} missing Classroom submission${missing === 1 ? "" : "s"}.`);
+    if (failures.length) parts.push(`Errors: ${failures.join(" | ")}.`);
+    showSyncStatus(parts.join(" "), failures.length > 0);
+  }
+
+  async function returnParticipationGrades() {
+    if (!(await ensureClassroomConnected())) return;
+    const { termId, termLabel, settings, mappings, classes } = getGradeSyncContext();
+    const publishedClasses = classes.filter(classInfo => {
+      const assignment = settings.assignments?.[classInfo.id];
+      return assignment && assignment.courseId === mappings[classInfo.id]?.courseId && assignment.state === "PUBLISHED";
+    });
+
+    if (!publishedClasses.length) {
+      showSyncStatus(`Publish the ${trackerName()} assignment first.`, true);
+      return;
+    }
+
+    if (!window.confirm(
+      `Return ${termLabel} ${trackerName().toLowerCase()} grades to students?\n\nCurrent tracker scores will become the grades students see in Google Classroom. Students who have not clicked Turn In yet will be skipped. Previously returned grades will be updated.`
+    )) return;
+
+    returnGradesButton.disabled = true;
+    let returned = 0;
+    let updated = 0;
+    let waiting = 0;
+    let missing = 0;
+    const failures = [];
+
+    for (const classInfo of publishedClasses) {
+      const mapping = mappings[classInfo.id];
+      const assignment = settings.assignments[classInfo.id];
+      const students = getTrackerGradePreview(classInfo.id, termId)
+        .filter(student => student.eligible);
+      let classSynced = 0;
+      let classWaiting = 0;
+      let classMissing = 0;
+      let classFailed = 0;
+
+      try {
+        const submissions = await ClassroomService.listStudentSubmissions(mapping.courseId, assignment.courseWorkId);
+        const byUserId = new Map(submissions.map(submission => [submission.userId, submission]));
+        const jobs = [];
+
+        students.forEach(student => {
+          const submission = byUserId.get(student.googleId);
+          if (!submission) {
+            classMissing += 1;
+            return;
+          }
+          if (!["TURNED_IN", "RETURNED"].includes(submission.state)) {
+            classWaiting += 1;
+            return;
+          }
+          jobs.push({ student, submission });
+        });
+
+        await runInBatches(jobs, async job => {
+          try {
+            await ClassroomService.setReturnedGrade(
+              mapping.courseId,
+              assignment.courseWorkId,
+              job.submission.id,
+              job.student.classroomGrade
+            );
+
+            if (job.submission.state === "TURNED_IN") {
+              await ClassroomService.returnStudentSubmission(
+                mapping.courseId,
+                assignment.courseWorkId,
+                job.submission.id
+              );
+              returned += 1;
+            } else {
+              updated += 1;
+            }
+            classSynced += 1;
+          } catch (error) {
+            console.error(error);
+            classFailed += 1;
+            failures.push(`${classInfo.name}: ${job.student.name} — ${error.message || "failed"}`);
+          }
+        });
+      } catch (error) {
+        console.error(error);
+        classFailed = students.length;
+        failures.push(`${classInfo.name}: ${error.message || "failed"}`);
+      }
+
+      waiting += classWaiting;
+      missing += classMissing;
+      markTrackerGradeSynced(classInfo.id, termId, {
+        syncedCount: classSynced,
+        missingSubmissionCount: classWaiting + classMissing,
+        failedCount: classFailed,
+        at: new Date().toISOString()
+      });
+    }
+
+    await refreshSyncOverview();
+    const visible = returned + updated;
+    const parts = [`${visible} student grade${visible === 1 ? "" : "s"} returned or updated.`];
+    if (returned) parts.push(`${returned} newly returned.`);
+    if (updated) parts.push(`${updated} previously returned grade${updated === 1 ? "" : "s"} updated.`);
+    if (waiting) parts.push(`${waiting} waiting for Turn In.`);
+    if (missing) parts.push(`${missing} missing Classroom submission${missing === 1 ? "" : "s"}.`);
+    if (failures.length) parts.push(`Errors: ${failures.join(" | ")}.`);
+    showSyncStatus(parts.join(" "), failures.length > 0);
+  }
+
+  function undoLast() {
+    const action = uiState.undoStack.pop();
+    if (!action) return;
+
+    if (action.type === "timeliness-add") {
+      DashboardData.removeTimelinessEntry(action.period, action.studentId || action.studentName, action.entryId, action.termId);
+      if (lateModalStudent && lateModalStudent.id === action.studentId && lateModal.classList.contains("visible")) renderLateModal();
+      showToast(`Undid late entry for ${action.studentName}`);
+    } else {
+      DashboardData.setParticipationPoints(
+        action.period,
+        action.studentId || action.studentName,
+        action.previous,
+        action.termId
+      );
+      showToast(`Undid last change for ${action.studentName}`);
+    }
+    saveUIState();
+    render();
+  }
+
+  function csvEscape(value) {
+    const text = String(value == null ? "" : value);
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  }
+
+  function exportCsv() {
+    const period = currentPeriod();
+    const termId = activeTermId();
+    let rows;
+    let filename;
+
+    if (currentView === "timeliness") {
+      const term = DashboardData.getTimelinessTerms().find(item => item.id === termId);
+      rows = [["Class", "Student", "Timeliness Score", "Starting Points", "Late Assignments", "Points Deducted", "Late Work History"]];
+      DashboardData.getTimelinessForClass(period, termId).forEach(student => {
+        rows.push([
+          classLabel(period), student.name, student.score, student.startingPoints,
+          student.lateCount, student.deductedPoints,
+          student.entries.map(entry => entry.note).join(" | ")
+        ]);
+      });
+      const safeTerm = (term?.label || termId).replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
+      const safeClass = classLabel(period).replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
+      filename = `Timeliness-${safeTerm}-${safeClass}.csv`;
+    } else {
+      const terms = DashboardData.getParticipationTerms();
+      const term = terms.find(item => item.id === termId);
+      const goal = activeGoal();
+      rows = [["Class", "Student", "Participation Points", "Goal", "Percent", "Status"]];
+      currentRoster().forEach(student => {
+        const points = pointsFor(student, period, termId);
+        const percent = Math.round((Math.min(points, goal) / goal) * 100);
+        rows.push([classLabel(period), student.name, points, goal, `${percent}%`, points >= goal ? "Complete" : points === 0 ? "No Participation Yet" : "In Progress"]);
+      });
+      const safeTerm = (term?.label || termId).replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
+      const safeClass = classLabel(period).replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "");
+      filename = `Participation-${safeTerm}-${safeClass}.csv`;
+    }
+
+    const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    showToast(`${trackerName()} CSV downloaded`);
+  }
+
+  termSelect.addEventListener("change", () => {
+    if (currentView === "timeliness") DashboardData.setActiveTimelinessTerm(termSelect.value);
+    else DashboardData.setActiveParticipationTerm(termSelect.value);
+    buildTerms();
+    render();
+  });
+
+  participationViewButton.addEventListener("click", () => {
+    if (currentView === "participation") return;
+    currentView = "participation";
+    searchInput.value = "";
+    buildTerms();
+    render();
+  });
+  timelinessViewButton.addEventListener("click", () => {
+    if (currentView === "timeliness") return;
+    currentView = "timeliness";
+    searchInput.value = "";
+    buildTerms();
+    render();
+  });
+
+  sortSelect.addEventListener("change", renderStudents);
+  searchInput.addEventListener("input", renderStudents);
+  el("settingsButton").addEventListener("click", () => {
+    window.location.href = currentView === "timeliness"
+      ? "settings.html#timelinessGradeSyncPanel"
+      : "settings.html#participationGradeSyncPanel";
+  });
+  syncGradesButton.addEventListener("click", openSyncModal);
+  el("closeSyncModal").addEventListener("click", () => closeModal(syncModal));
+  el("closeLateModal").addEventListener("click", () => closeModal(lateModal));
+  el("addLateEntryButton").addEventListener("click", addLateEntry);
+  lateEntryInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") { event.preventDefault(); addLateEntry(); }
+  });
+  publishAssignmentButton.addEventListener("click", publishParticipationAssignments);
+  syncDraftGradesButton.addEventListener("click", syncDraftParticipationGrades);
+  returnGradesButton.addEventListener("click", returnParticipationGrades);
+  undoButton.addEventListener("click", undoLast);
+  el("exportButton").addEventListener("click", exportCsv);
+
+  [syncModal, lateModal].forEach(modal => {
+    modal.addEventListener("click", event => {
+      if (event.target === modal) closeModal(modal);
+    });
+  });
+
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    if (lateModal.classList.contains("visible")) { closeModal(lateModal); return; }
+    if (syncModal.classList.contains("visible")) closeModal(syncModal);
+  });
+
+  window.addEventListener(DashboardData.changeEvent, () => {
+    buildTerms();
+    buildPeriodButtons();
+    render();
+    if (currentView === "timeliness" && lateModal.classList.contains("visible") && lateModalStudent) renderLateModal();
+  });
+
+  buildTerms();
+  buildPeriodButtons();
+  render();
+})();
+
+</script>
+</body>
+</html>
