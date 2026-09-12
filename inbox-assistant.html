@@ -60,24 +60,11 @@
       color:var(--muted);font-size:11px;
     }
     .frame-fallback a{color:var(--blue);font-weight:800;text-decoration:none}
-    .todo-popover{
-      position:fixed;top:70px;right:18px;z-index:20;width:min(390px,calc(100vw - 24px));
-      padding:14px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.16)
-    }
-    .todo-popover[hidden]{display:none}
-    .todo-popover-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-    .todo-popover-title{font-size:14px;font-weight:800}
-    .todo-close{border:0;background:transparent;color:var(--muted);font-size:20px;line-height:1;padding:2px 4px;border-radius:6px}
-    .todo-close:hover{background:#f1f3f4}
-    .todo-popover input{height:42px}
-    .todo-help{margin:7px 0 0;color:var(--muted);font-size:11px}
-    .todo-status{min-height:16px;margin-top:7px;color:var(--blue);font-size:12px;font-weight:700}
     @media(max-width:760px){
       .topbar{grid-template-columns:auto 1fr auto;min-height:66px;padding:9px 10px}
       .brand img{display:none}.brand h1{font-size:18px}.hide-mobile{display:none}
       iframe{height:calc(100vh - 66px)}.frame-wrap{min-height:calc(100vh - 66px)}
       .setup{margin:24px auto}.card{padding:20px}
-      .todo-popover{top:60px;right:12px}
     }
   </style>
 </head>
@@ -90,7 +77,6 @@
       <img src="bjh-logo.png" class="right-logo" alt="BJH Bobcat">
     </div>
     <div class="right">
-      <button id="quickTodoButton" class="button" type="button" hidden>＋ To-Do</button>
       <button id="openStandaloneButton" class="button hide-mobile" type="button" hidden>Open Standalone ↗</button>
       <button id="changeUrlButton" class="button" type="button" hidden>⚙</button>
     </div>
@@ -122,16 +108,6 @@
     <div class="frame-fallback">If Google sign-in prevents embedding, <a id="fallbackLink" href="#" target="_blank" rel="noopener">open the app in a new tab</a>.</div>
   </section>
 
-  <div id="todoPopover" class="todo-popover" hidden>
-    <div class="todo-popover-header">
-      <div class="todo-popover-title">Add to To-Do List</div>
-      <button id="closeTodoButton" class="todo-close" type="button" aria-label="Close">×</button>
-    </div>
-    <input id="quickTodoInput" type="text" maxlength="500" autocomplete="off" placeholder="What do you need to do?">
-    <p class="todo-help">Press Enter to add it to Class Reminders → To-Do List.</p>
-    <div id="todoStatus" class="todo-status" aria-live="polite"></div>
-  </div>
-
 <script src="shared/dashboard-data.js"></script>
 <script src="shared/bell-service.js"></script>
 <script src="shared/reminder-service.js"></script>
@@ -147,11 +123,6 @@
   const saveUrlButton = document.getElementById('saveUrlButton');
   const changeUrlButton = document.getElementById('changeUrlButton');
   const openStandaloneButton = document.getElementById('openStandaloneButton');
-  const quickTodoButton = document.getElementById('quickTodoButton');
-  const todoPopover = document.getElementById('todoPopover');
-  const quickTodoInput = document.getElementById('quickTodoInput');
-  const closeTodoButton = document.getElementById('closeTodoButton');
-  const todoStatus = document.getElementById('todoStatus');
   const assistantFrame = document.getElementById('assistantFrame');
   const fallbackLink = document.getElementById('fallbackLink');
 
@@ -172,8 +143,6 @@
     frameView.hidden = true;
     changeUrlButton.hidden = true;
     openStandaloneButton.hidden = true;
-    quickTodoButton.hidden = true;
-    todoPopover.hidden = true;
     urlError.textContent = message;
     urlError.classList.toggle('show', Boolean(message));
     assistantFrame.removeAttribute('src');
@@ -184,39 +153,9 @@
     frameView.hidden = false;
     changeUrlButton.hidden = false;
     openStandaloneButton.hidden = false;
-    quickTodoButton.hidden = false;
     assistantFrame.src = url;
     fallbackLink.href = url;
     openStandaloneButton.onclick = () => window.open(url, '_blank', 'noopener');
-  }
-
-  function openTodoPopover() {
-    todoStatus.textContent = '';
-    todoPopover.hidden = false;
-    setTimeout(() => quickTodoInput.focus(), 0);
-  }
-
-  function closeTodoPopover() {
-    todoPopover.hidden = true;
-    quickTodoInput.value = '';
-    todoStatus.textContent = '';
-  }
-
-  function addQuickTodo() {
-    const text = quickTodoInput.value.trim();
-    if (!text) return;
-
-    try {
-      ReminderService.addTodo({ text, source: 'inbox' });
-      quickTodoInput.value = '';
-      todoStatus.textContent = 'Added to To-Do List';
-      setTimeout(() => {
-        if (!todoPopover.hidden) todoStatus.textContent = '';
-      }, 1800);
-    } catch (error) {
-      console.error(error);
-      todoStatus.textContent = error.message || 'Could not add to To-Do List';
-    }
   }
 
   function saveUrl() {
@@ -235,19 +174,6 @@
     if (event.key === 'Enter') saveUrl();
   });
   changeUrlButton.addEventListener('click', () => showSetup());
-  quickTodoButton.addEventListener('click', openTodoPopover);
-  closeTodoButton.addEventListener('click', closeTodoPopover);
-  quickTodoInput.addEventListener('keydown', event => {
-    if (event.key === 'Enter' && !event.isComposing) {
-      event.preventDefault();
-      addQuickTodo();
-    } else if (event.key === 'Escape') {
-      closeTodoPopover();
-    }
-  });
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && !todoPopover.hidden) closeTodoPopover();
-  });
 
   // Receive To-Do handoffs from the embedded Inbox Assistant.
   // Only messages coming from this page's iframe are accepted.
