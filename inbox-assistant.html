@@ -249,6 +249,67 @@
     if (event.key === 'Escape' && !todoPopover.hidden) closeTodoPopover();
   });
 
+  // Receive To-Do handoffs from the embedded Inbox Assistant.
+  // Only messages coming from this page's iframe are accepted.
+  window.addEventListener('message', event => {
+    const data = event && event.data;
+
+    if (
+      !assistantFrame.contentWindow ||
+      event.source !== assistantFrame.contentWindow ||
+      !data ||
+      data.type !== 'teacher-dashboard:add-todo'
+    ) {
+      return;
+    }
+
+    const requestId = String(data.requestId || '');
+    const text = String(data.text || '').trim();
+
+    const reply = payload => {
+      try {
+        event.source.postMessage(
+          {
+            type: 'teacher-dashboard:todo-added',
+            requestId,
+            ...payload
+          },
+          event.origin && event.origin !== 'null' ? event.origin : '*'
+        );
+      } catch (_) {
+        // The task may still have been added successfully even if
+        // the acknowledgement cannot be returned.
+      }
+    };
+
+    if (!text) {
+      reply({
+        ok: false,
+        error: 'The To-Do item was empty.'
+      });
+      return;
+    }
+
+    try {
+      ReminderService.addTodo({
+        text,
+        source: 'inbox'
+      });
+
+      reply({ ok: true });
+    } catch (error) {
+      console.error(error);
+
+      reply({
+        ok: false,
+        error:
+          error && error.message
+            ? error.message
+            : 'Could not add the task to the Dashboard To-Do List.'
+      });
+    }
+  });
+
   const saved = normalizeUrl(localStorage.getItem(STORAGE_KEY));
   if (saved) showFrame(saved); else showSetup();
 })();
