@@ -167,8 +167,15 @@
     .comp-table input{padding:8px 9px}
     .comp-table .rank-cell{width:52px;text-align:center;font-weight:700}
     .comp-table .period-cell{font-weight:700}
-    .preset-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:14px 0}
-    .preset-label{font-size:11px;color:var(--muted);font-weight:700;margin-right:2px}
+    .scoring-section{margin:4px 0 16px}
+    .scoring-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
+    .scoring-toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff}
+    .scoring-method-button{border:0;border-right:1px solid var(--border);background:#fff;color:var(--text);padding:9px 13px;font-weight:700;font-size:12px}
+    .scoring-method-button:last-child{border-right:0}
+    .scoring-method-button:hover{background:#f8f9fa}
+    .scoring-method-button.active{background:var(--blue);color:#fff}
+    .scoring-explanation{margin-top:8px;max-width:620px;color:var(--muted);font-size:12px;line-height:1.45}
+    .comp-table .championship-points{background:#f8f9fa;color:var(--text);font-weight:700}
     .winner-preview{background:#fef7e0;color:#7c5900;border-radius:10px;padding:10px 12px;font-weight:700;font-size:13px;min-height:38px}
     .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 
@@ -227,6 +234,8 @@
       .form-grid{grid-template-columns:1fr;gap:7px}
       .field-label{margin-top:3px}
       .competition-form-top{grid-template-columns:1fr}
+      .scoring-toggle{display:flex;width:100%}
+      .scoring-method-button{flex:1}
       .manage-class-list{grid-template-columns:1fr}
     }
     @media(max-width:520px){
@@ -278,7 +287,6 @@
       <div class="standings-header">
         <div>
           <div class="championship-title" id="standingsTitle">Fall Semester Championship</div>
-          <div class="card-subtitle">This championship has its own standings, history, and competitions.</div>
         </div>
         <div class="leader-callout" id="leaderCallout">🍩 Donut Day Leader: —</div>
       </div>
@@ -302,7 +310,7 @@
           <input type="number" id="customPoints" placeholder="Enter points" step="1">
 
           <div class="field-label">Reason</div>
-          <input type="text" id="reasonInput" placeholder="NYT Spelling Bee" maxlength="120">
+          <input type="text" id="reasonInput" placeholder="Spelling Bee" maxlength="120">
         </div>
 
         <div class="add-score-row">
@@ -330,7 +338,7 @@
       <div class="card-title-row">
         <div>
           <div class="card-title">Recent Competitions</div>
-          <div class="card-subtitle">Game results and awarded points are stored inside the selected championship.</div>
+          <div class="card-subtitle">Game results and championship points are stored inside the selected championship.</div>
         </div>
         <button class="button small" id="newCompetitionButton2" type="button">New Competition</button>
       </div>
@@ -352,14 +360,25 @@
       <div class="modal-header">
         <div>
           <div class="modal-title" id="competitionModalTitle">New Competition</div>
-          <div class="modal-subtitle">Enter the actual game score, then decide how many championship points each class earns.</div>
+          <div class="modal-subtitle">Enter each class's game score. Championship points are calculated automatically.</div>
         </div>
         <button class="icon-button" id="closeCompetitionModal" aria-label="Close">×</button>
       </div>
 
       <div class="competition-form-top">
-        <input type="text" id="competitionName" placeholder="NYT Spelling Bee" maxlength="120">
+        <input type="text" id="competitionName" placeholder="Spelling Bee" maxlength="120">
         <input type="date" id="competitionDate">
+      </div>
+
+      <div class="scoring-section">
+        <div class="scoring-label">Scoring Method</div>
+        <div class="scoring-toggle" role="group" aria-label="Competition scoring method">
+          <button class="scoring-method-button" id="straightPointsButton" type="button" aria-pressed="false">Straight Points</button>
+          <button class="scoring-method-button active" id="balancedPointsButton" type="button" aria-pressed="true">⚖ Balanced to 10</button>
+        </div>
+        <div class="scoring-explanation" id="scoringExplanation">
+          The highest game score earns 10 championship points. Every other class earns a proportional amount.
+        </div>
       </div>
 
       <table class="comp-table">
@@ -368,24 +387,17 @@
             <th>Rank</th>
             <th>Class</th>
             <th>Game Score</th>
-            <th>Season Points</th>
+            <th>Championship Points</th>
           </tr>
         </thead>
         <tbody id="competitionRows"></tbody>
       </table>
 
-      <div class="preset-row">
-        <span class="preset-label">Quick awards:</span>
-        <button class="button small" id="useGameScoresPreset">Use Game Scores</button>
-        <button class="button small" id="placementPreset">10 / 5 / 3</button>
-        <button class="button small" id="clearAwardsPreset">Clear Awards</button>
-      </div>
-
       <div class="winner-preview" id="winnerPreview">Enter game scores to see the winner.</div>
 
       <div class="modal-actions">
         <button class="button" id="cancelCompetition">Cancel</button>
-        <button class="button primary" id="saveCompetition">Add Results to Season</button>
+        <button class="button primary" id="saveCompetition">Add Results to Championship</button>
       </div>
     </div>
   </div>
@@ -545,6 +557,7 @@ function getScores(){
       if(Number.isFinite(value)) scores[p] += value;
     });
   });
+  PERIODS.forEach(p => scores[p] = roundScore(scores[p]));
   return scores;
 }
 
@@ -562,9 +575,19 @@ function medalFor(index){
   return String(index + 1);
 }
 
-function formatDelta(value){
+function roundScore(value){
   const n = Number(value) || 0;
-  return n > 0 ? `+${n}` : String(n);
+  return Math.round((n + Number.EPSILON) * 10) / 10;
+}
+
+function formatScore(value){
+  const n = roundScore(value);
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function formatDelta(value){
+  const n = roundScore(value);
+  return n > 0 ? `+${formatScore(n)}` : formatScore(n);
 }
 
 /* =========================================================
@@ -631,7 +654,7 @@ function renderStandings(){
 
     const score = document.createElement("div");
     score.className = "score";
-    score.innerHTML = `${item.score} <small>pts</small>`;
+    score.innerHTML = `${formatScore(item.score)} <small>pts</small>`;
 
     row.append(rank,period,track,score);
     list.appendChild(row);
@@ -952,6 +975,26 @@ document.getElementById("dashboardSettingsButton").addEventListener("click", () 
 
 const competitionModal = document.getElementById("competitionModal");
 const competitionRows = document.getElementById("competitionRows");
+const straightPointsButton = document.getElementById("straightPointsButton");
+const balancedPointsButton = document.getElementById("balancedPointsButton");
+const scoringExplanation = document.getElementById("scoringExplanation");
+let competitionScoringMethod = "balanced";
+
+function setCompetitionScoringMethod(method){
+  competitionScoringMethod = method === "straight" ? "straight" : "balanced";
+
+  const straightSelected = competitionScoringMethod === "straight";
+  straightPointsButton.classList.toggle("active", straightSelected);
+  balancedPointsButton.classList.toggle("active", !straightSelected);
+  straightPointsButton.setAttribute("aria-pressed", String(straightSelected));
+  balancedPointsButton.setAttribute("aria-pressed", String(!straightSelected));
+
+  scoringExplanation.textContent = straightSelected
+    ? "Game scores are added directly to the championship standings."
+    : "The highest game score earns 10 championship points. Every other class earns a proportional amount.";
+
+  updateCompetitionPreview();
+}
 
 function openCompetitionModal(){
   if(!activePeriods().length){
@@ -968,13 +1011,14 @@ function openCompetitionModal(){
     row.innerHTML = `
       <td class="rank-cell">—</td>
       <td class="period-cell">${getClassLabel(period)}</td>
-      <td><input class="game-score" type="number" step="1" placeholder="0" aria-label="${getClassLabel(period)} game score"></td>
-      <td><input class="season-award" type="number" step="1" placeholder="0" aria-label="${getClassLabel(period)} season points"></td>
+      <td><input class="game-score" type="number" min="0" step="1" placeholder="0" aria-label="${getClassLabel(period)} game score"></td>
+      <td><input class="championship-points" type="number" step="0.1" placeholder="—" aria-label="${getClassLabel(period)} championship points" readonly></td>
     `;
     competitionRows.appendChild(row);
   });
 
   competitionRows.querySelectorAll(".game-score").forEach(input => input.addEventListener("input", updateCompetitionPreview));
+  setCompetitionScoringMethod("balanced");
   competitionModal.classList.add("open");
   competitionModal.setAttribute("aria-hidden","false");
   updateCompetitionPreview();
@@ -990,6 +1034,8 @@ document.getElementById("newCompetitionButton").addEventListener("click", openCo
 document.getElementById("newCompetitionButton2").addEventListener("click", openCompetitionModal);
 document.getElementById("closeCompetitionModal").addEventListener("click", closeCompetitionModal);
 document.getElementById("cancelCompetition").addEventListener("click", closeCompetitionModal);
+straightPointsButton.addEventListener("click", () => setCompetitionScoringMethod("straight"));
+balancedPointsButton.addEventListener("click", () => setCompetitionScoringMethod("balanced"));
 competitionModal.addEventListener("click", event => {
   if(event.target === competitionModal) closeCompetitionModal();
 });
@@ -999,24 +1045,49 @@ document.addEventListener("keydown", event => {
 });
 
 function readCompetitionRows(){
-  return [...competitionRows.querySelectorAll("tr")].map(row => ({
-    period:Number(row.dataset.period),
-    gameScore:Number(row.querySelector(".game-score").value || 0),
-    award:Number(row.querySelector(".season-award").value || 0),
-    rankCell:row.querySelector(".rank-cell")
-  }));
+  return [...competitionRows.querySelectorAll("tr")].map(row => {
+    const gameInput = row.querySelector(".game-score");
+    const pointsInput = row.querySelector(".championship-points");
+    return {
+      period:Number(row.dataset.period),
+      gameScore:Number(gameInput.value || 0),
+      scoreEntered:gameInput.value !== "",
+      award:Number(pointsInput.value || 0),
+      rankCell:row.querySelector(".rank-cell"),
+      pointsInput
+    };
+  });
 }
 
-function rankedCompetitionRows(){
-  return readCompetitionRows().sort((a,b) => b.gameScore - a.gameScore || a.period - b.period);
+function calculateCompetitionAwards(entries){
+  const entered = entries.filter(entry => entry.scoreEntered);
+  if(!entered.length) return;
+
+  if(competitionScoringMethod === "straight"){
+    entered.forEach(entry => {
+      entry.pointsInput.value = formatScore(entry.gameScore);
+    });
+    return;
+  }
+
+  const winningScore = Math.max(...entered.map(entry => entry.gameScore));
+  entered.forEach(entry => {
+    const award = winningScore > 0 ? roundScore((entry.gameScore / winningScore) * 10) : 0;
+    entry.pointsInput.value = award.toFixed(1);
+  });
 }
 
 function updateCompetitionPreview(){
   const entries = readCompetitionRows();
-  const hasAnyScore = entries.some(x => x.gameScore !== 0 || competitionRows.querySelector(`tr[data-period="${x.period}"] .game-score`).value !== "");
-  const ranked = [...entries].sort((a,b) => b.gameScore - a.gameScore || a.period - b.period);
+  entries.forEach(entry => {
+    if(!entry.scoreEntered) entry.pointsInput.value = "";
+  });
 
-  // Competition ranking with standard competition-style ties.
+  calculateCompetitionAwards(entries);
+
+  const entered = entries.filter(entry => entry.scoreEntered);
+  const ranked = [...entered].sort((a,b) => b.gameScore - a.gameScore || a.period - b.period);
+
   let previousScore = null;
   let previousRank = 0;
   ranked.forEach((entry,index) => {
@@ -1027,69 +1098,56 @@ function updateCompetitionPreview(){
   });
 
   entries.forEach(entry => {
-    const match = ranked.find(x => x.period === entry.period);
-    entry.rankCell.textContent = hasAnyScore ? medalFor((match?.rank || 1)-1) : "—";
+    if(!entry.scoreEntered){
+      entry.rankCell.textContent = "—";
+      return;
+    }
+    const match = ranked.find(item => item.period === entry.period);
+    entry.rankCell.textContent = medalFor((match?.rank || 1) - 1);
   });
 
   const preview = document.getElementById("winnerPreview");
-  if(!hasAnyScore){
+  if(!ranked.length){
     preview.textContent = "Enter game scores to see the winner.";
     return;
   }
 
   const topScore = ranked[0].gameScore;
-  const winners = ranked.filter(x => x.gameScore === topScore).map(x => getClassLabel(x.period));
-  preview.textContent = winners.length === 1
-    ? `🏆 ${winners[0]} wins with ${topScore} points.`
-    : `🏆 Tie for first: ${winners.join(" & ")} with ${topScore} points.`;
+  const leaders = ranked.filter(entry => entry.gameScore === topScore).map(entry => getClassLabel(entry.period));
+  const allEntered = entries.every(entry => entry.scoreEntered);
+  const label = leaders.length === 1
+    ? `${leaders[0]} ${allEntered ? "wins" : "currently leads"} with ${formatScore(topScore)} points.`
+    : `${allEntered ? "Tie for first" : "Current tie for first"}: ${leaders.join(" & ")} with ${formatScore(topScore)} points.`;
+
+  preview.textContent = `🏆 ${label}`;
 }
-
-document.getElementById("useGameScoresPreset").addEventListener("click", () => {
-  readCompetitionRows().forEach(entry => {
-    const row = competitionRows.querySelector(`tr[data-period="${entry.period}"]`);
-    row.querySelector(".season-award").value = entry.gameScore;
-  });
-});
-
-document.getElementById("placementPreset").addEventListener("click", () => {
-  const scoreInputs = [...competitionRows.querySelectorAll(".game-score")];
-  if(scoreInputs.some(input => input.value === "")){
-    return showToast("Enter a game score for every visible class first.");
-  }
-  const ranked = rankedCompetitionRows();
-  const awardByRank = {1:10,2:5,3:3};
-  let previousScore = null;
-  let previousRank = 0;
-
-  ranked.forEach((entry,index) => {
-    const rank = previousScore !== null && entry.gameScore === previousScore ? previousRank : index + 1;
-    previousScore = entry.gameScore;
-    previousRank = rank;
-    const row = competitionRows.querySelector(`tr[data-period="${entry.period}"]`);
-    row.querySelector(".season-award").value = awardByRank[rank] || 0;
-  });
-});
-
-document.getElementById("clearAwardsPreset").addEventListener("click", () => {
-  competitionRows.querySelectorAll(".season-award").forEach(input => input.value = "");
-});
 
 document.getElementById("saveCompetition").addEventListener("click", () => {
   const name = document.getElementById("competitionName").value.trim() || "Class Competition";
   const dateValue = document.getElementById("competitionDate").value || dateKey(new Date());
-  const entries = readCompetitionRows();
+  const scoreInputs = [...competitionRows.querySelectorAll(".game-score")];
 
+  if(scoreInputs.some(input => input.value === "")){
+    return showToast("Enter a game score for every active class.");
+  }
+
+  if(scoreInputs.some(input => Number(input.value) < 0)){
+    return showToast("Game scores cannot be negative.");
+  }
+
+  if(!scoreInputs.some(input => Number(input.value) > 0)){
+    return showToast("Enter at least one game score greater than 0.");
+  }
+
+  updateCompetitionPreview();
+  const entries = readCompetitionRows();
   const gameScores = {};
   const changes = {};
-  entries.forEach(entry => {
-    gameScores[entry.period] = Number(entry.gameScore) || 0;
-    changes[entry.period] = Number(entry.award) || 0;
-  });
 
-  const scoreInputs = [...competitionRows.querySelectorAll(".game-score")];
-  if(scoreInputs.some(input => input.value === "")){
-    return showToast("Enter a game score for every visible class.");
-  }
+  entries.forEach(entry => {
+    gameScores[entry.period] = roundScore(entry.gameScore);
+    changes[entry.period] = roundScore(entry.award);
+  });
 
   const localNoon = new Date(`${dateValue}T12:00:00`);
   activeEvents().push({
@@ -1097,6 +1155,8 @@ document.getElementById("saveCompetition").addEventListener("click", () => {
     type:"competition",
     date:localNoon.toISOString(),
     reason:name,
+    scoringMethod:competitionScoringMethod,
+    scoringScale:competitionScoringMethod === "balanced" ? 10 : null,
     gameScores,
     changes
   });
@@ -1104,7 +1164,7 @@ document.getElementById("saveCompetition").addEventListener("click", () => {
   saveState();
   renderAll();
   closeCompetitionModal();
-  showToast(`${name} added to the season.`);
+  showToast(`${name} added to the championship.`);
 });
 
 /* =========================================================
