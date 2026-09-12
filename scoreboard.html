@@ -744,7 +744,7 @@ function renderCompetitions(){
   if(!competitions.length){
     const empty = document.createElement("div");
     empty.className = "no-competitions";
-    empty.textContent = "No competitions recorded yet. Start one when you want to compare all of your active classes in the same activity.";
+    empty.textContent = "No competitions recorded yet.";
     list.appendChild(empty);
     return;
   }
@@ -1027,7 +1027,6 @@ function closeCompetitionModal(){
 }
 
 document.getElementById("newCompetitionButton").addEventListener("click", openCompetitionModal);
-document.getElementById("newCompetitionButton2").addEventListener("click", openCompetitionModal);
 document.getElementById("closeCompetitionModal").addEventListener("click", closeCompetitionModal);
 document.getElementById("cancelCompetition").addEventListener("click", closeCompetitionModal);
 straightPointsButton.addEventListener("click", () => setCompetitionScoringMethod("straight"));
