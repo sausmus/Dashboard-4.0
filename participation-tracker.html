@@ -177,6 +177,29 @@
       line-height: 1.5;
     }
 
+    .goal-control {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 18px;
+      font-weight: 800;
+      flex-wrap: wrap;
+    }
+
+    .goal-control input {
+      width: 74px;
+      min-height: 42px;
+      padding: 7px 9px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .goal-control span {
+      white-space: nowrap;
+    }
+
     #periodButtons { justify-content: flex-start; }
 
     .view-switch {
@@ -804,6 +827,49 @@
     return DashboardData.getParticipationGoal(activeTermId());
   }
 
+  function renderParticipationGoalControl() {
+    const goal = activeGoal();
+    goalSummary.innerHTML = "";
+    goalSummary.className = "goal-control";
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "1";
+    input.max = "20";
+    input.step = "1";
+    input.value = String(goal);
+    input.setAttribute("aria-label", "Participation points needed for full credit");
+
+    const text = document.createElement("span");
+    text.textContent = "points = full credit";
+
+    const saveGoal = () => {
+      const requested = Math.max(1, Math.min(20, Math.floor(Number(input.value) || goal)));
+      input.value = String(requested);
+
+      if (requested === goal) return;
+
+      try {
+        DashboardData.setParticipationGoal(activeTermId(), requested);
+        showToast(`Participation goal set to ${requested} point${requested === 1 ? "" : "s"}`);
+      } catch (error) {
+        console.error(error);
+        input.value = String(goal);
+        showToast(error.message || "Participation goal could not be saved");
+      }
+    };
+
+    input.addEventListener("change", saveGoal);
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        input.blur();
+      }
+    });
+
+    goalSummary.append(input, text);
+  }
+
   function currentPeriod() {
     const activeClasses = DashboardData.getClasses({ activeOnly: true });
     const current = DashboardData.getCurrentClassId();
@@ -1192,6 +1258,7 @@
       const policy = DashboardData.getTimelinessPolicy(activeTermId());
       termLabel.textContent = "Semester";
       goalLabel.textContent = "Timeliness Score";
+      goalSummary.className = "";
       goalSummary.textContent = `${policy.startingPoints}/${policy.startingPoints} start · ${policy.minimumPoints}/${policy.startingPoints} floor`;
       termHelp.textContent = policy.graceEnabled
         ? `The first recorded late submission is a grace occurrence. Each additional late assignment deducts ${policy.deductionPerLateSubmission} point, regardless of how late it is.`
@@ -1203,7 +1270,7 @@
       const goal = activeGoal();
       termLabel.textContent = "Grading Term";
       goalLabel.textContent = "Participation Goal";
-      goalSummary.textContent = `${goal} point${goal === 1 ? "" : "s"} = full credit`;
+      renderParticipationGoalControl();
       termHelp.textContent = "Each term keeps its own participation totals, so switching terms never erases earlier records.";
       trackerHelp.textContent = "Tap a student card to add one participation point. Use the − button only for corrections. Points may exceed the goal (for example, 7/5).";
       el("settingsButton").textContent = "⚙ Participation Settings";
