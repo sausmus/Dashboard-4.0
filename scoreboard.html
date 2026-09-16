@@ -133,6 +133,13 @@
     .history-empty{padding:30px 12px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--border);border-radius:11px}
     .history-item{border:1px solid #edf0f2;border-radius:11px;padding:11px 12px}
     .history-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .history-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+    .history-delete{
+      width:30px;height:30px;display:grid;place-items:center;border:1px solid transparent;border-radius:8px;
+      background:transparent;color:var(--muted);padding:0;transition:.15s ease;
+    }
+    .history-delete:hover{background:var(--red-light);border-color:#f3b7b2;color:var(--red)}
+    .history-delete svg{width:15px;height:15px;stroke:currentColor}
     .history-reason{font-size:14px;font-weight:700}
     .history-meta{font-size:11px;color:var(--muted);margin-top:3px}
     .history-changes{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
@@ -328,6 +335,7 @@
           <div class="history-controls">
             <select id="historyFilter"></select>
             <button class="button small danger" id="undoButton">Undo Last Score</button>
+            <button class="button small danger" id="deleteAllScoresButton">Delete All Scores</button>
           </div>
         </div>
         <div class="history-list" id="historyList"></div>
@@ -717,7 +725,26 @@ function renderHistory(){
     badge.className = "source-badge";
     badge.textContent = event.type === "competition" ? "Competition" : "Score";
 
-    top.append(textWrap,badge);
+    const actions = document.createElement("div");
+    actions.className = "history-actions";
+
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.className = "history-delete";
+    deleteButton.title = event.type === "competition" ? "Delete competition" : "Delete score";
+    deleteButton.setAttribute("aria-label", deleteButton.title);
+    deleteButton.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 6h18"></path>
+        <path d="M8 6V4h8v2"></path>
+        <path d="M19 6l-1 14H6L5 6"></path>
+        <path d="M10 11v5M14 11v5"></path>
+      </svg>
+    `;
+    deleteButton.addEventListener("click", () => deleteHistoryEvent(event.id));
+
+    actions.append(badge,deleteButton);
+    top.append(textWrap,actions);
 
     const changesWrap = document.createElement("div");
     changesWrap.className = "history-changes";
@@ -787,7 +814,9 @@ function renderCompetitions(){
 }
 
 function updateUndoButton(){
-  document.getElementById("undoButton").disabled = activeEvents().length === 0;
+  const hasEvents = activeEvents().length > 0;
+  document.getElementById("undoButton").disabled = !hasEvents;
+  document.getElementById("deleteAllScoresButton").disabled = !hasEvents;
 }
 
 function formatHistoryDate(value){
@@ -928,6 +957,41 @@ document.getElementById("undoButton").addEventListener("click", () => {
   saveState();
   renderAll();
   showToast("Last score event undone.");
+});
+
+function deleteHistoryEvent(eventId){
+  const events = activeEvents();
+  const index = events.findIndex(event => event.id === eventId);
+  if(index === -1) return;
+
+  const event = events[index];
+  const summary = event.reason || (event.type === "competition" ? "this competition" : "this score");
+  const detail = event.type === "competition"
+    ? "This will also remove its championship points and Recent Competitions entry."
+    : "This will remove its points from the championship standings.";
+
+  if(!confirm(`Delete "${summary}"?\n\n${detail}`)) return;
+
+  events.splice(index,1);
+  saveState();
+  renderAll();
+  showToast(event.type === "competition" ? "Competition deleted." : "Score deleted.");
+}
+
+document.getElementById("deleteAllScoresButton").addEventListener("click", () => {
+  if(!activeEvents().length) return;
+
+  const confirmed = confirm(
+    `Delete all scores from ${state.activeSeason}?\n\n` +
+    "This will permanently remove every score, competition, and history entry in this championship and reset all standings to 0. This cannot be undone."
+  );
+
+  if(!confirmed) return;
+
+  activeSeasonData().events = [];
+  saveState();
+  renderAll();
+  showToast(`${state.activeSeason} reset to 0.`);
 });
 
 /* =========================================================
