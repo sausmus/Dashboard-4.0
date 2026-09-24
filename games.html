@@ -1,0 +1,339 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Games | Teacher Dashboard</title><link rel="icon" href="bjh-logo.png"><style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --border: #dadce0;
+      --blue: #1a73e8;
+      --blue-light: #e8f0fe;
+      --green: #188038;
+      --shadow: 0 2px 8px rgba(0,0,0,.08);
+      --shadow-hover: 0 8px 24px rgba(0,0,0,.12);
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .app {
+      position: relative;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+    }
+
+    /* HEADER */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 30px;
+      white-space: nowrap;
+    }
+
+    .app-header h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -.5px;
+    }
+
+    .bjh-logo {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+    }
+
+    .bjh-logo.right {
+      transform: scaleX(-1);
+    }
+
+    /* INTRO */
+    .welcome-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 24px;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .welcome-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .welcome-text {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    /* UTILITY GRID */
+    .utility-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .utility-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 230px;
+      overflow: hidden;
+      background: var(--card);
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      transition:
+        transform .16s ease,
+        box-shadow .16s ease,
+        border-color .16s ease;
+    }
+
+    .utility-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+      border-color: #cbd8ee;
+    }
+
+    .utility-card:focus-visible {
+      outline: 3px solid rgba(26,115,232,.25);
+      outline-offset: 3px;
+    }
+
+    .utility-icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 20px;
+      border-radius: 14px;
+      background: var(--blue-light);
+      color: var(--blue);
+    }
+
+    .utility-icon svg {
+      width: 29px;
+      height: 29px;
+      stroke: currentColor;
+    }
+
+    .utility-title {
+      margin: 0 0 8px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -.25px;
+    }
+
+    .utility-description {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 430px;
+    }
+
+    .open-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: auto;
+      padding-top: 22px;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .open-arrow {
+      display: inline-block;
+      transition: transform .16s ease;
+    }
+
+    .utility-card:hover .open-arrow,
+    .settings-card:hover .open-arrow {
+      transform: translateX(4px);
+    }
+
+    /* SHARED DASHBOARD SETTINGS */
+    .settings-card {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-height: 126px;
+      background: var(--card);
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 24px;
+      transition:
+        transform .16s ease,
+        box-shadow .16s ease,
+        border-color .16s ease;
+    }
+
+    .settings-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
+      border-color: #cbd8ee;
+    }
+
+    .settings-card:focus-visible {
+      outline: 3px solid rgba(26,115,232,.25);
+      outline-offset: 3px;
+    }
+
+    .settings-card .utility-icon {
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .settings-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .settings-copy .utility-title {
+      font-size: 19px;
+      margin-bottom: 5px;
+    }
+
+    .settings-open {
+      flex: 0 0 auto;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .dashboard-bell-corner {
+      position: absolute;
+      top: 28px;
+      right: 20px;
+      z-index: 40;
+    }
+
+    /* FOOTER */
+    .dashboard-footer {
+      margin-top: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      .dashboard-bell-corner {
+        position: static;
+        display: flex;
+        justify-content: center;
+        margin: -12px 0 18px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .app {
+        padding: 20px 14px 36px;
+      }
+
+      .app-header {
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      .app-header h1 {
+        font-size: 23px;
+      }
+
+      .bjh-logo {
+        width: 46px;
+        height: 46px;
+      }
+
+      .welcome-card {
+        padding: 18px;
+      }
+
+      .utility-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+
+      .utility-card {
+        min-height: 205px;
+        padding: 20px;
+      }
+
+      .settings-card {
+        grid-column: auto;
+        align-items: flex-start;
+        min-height: 0;
+        padding: 20px;
+      }
+
+      .settings-open {
+        margin-left: auto;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .settings-card {
+        flex-wrap: wrap;
+      }
+
+      .settings-copy {
+        flex-basis: calc(100% - 72px);
+      }
+
+      .settings-open {
+        width: 100%;
+        margin-left: 72px;
+      }
+    }
+
+    @media (max-width: 410px) {
+      .app-header h1 {
+        font-size: 21px;
+      }
+
+      .bjh-logo {
+        width: 42px;
+        height: 42px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .utility-card,
+      .settings-card,
+      .open-arrow {
+        transition: none;
+      }
+    }
+  </style></head><body><main class="app"><p><a href="index.html">← Teacher Dashboard</a></p><header class="app-header"><img src="bjh-logo.png" class="bjh-logo" alt="BJH Bobcat"><h1>Games</h1></header><section class="welcome-card"><div class="welcome-title">A little competition. A lot of learning.</div><div class="welcome-text">Choose a game to review together.</div></section><section class="utility-grid" aria-label="Classroom games"><a class="utility-card" href="jeopardy.html"><div class="utility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="5"/><path d="M8 10v5M5.5 12.5h5M16 11h.01M19 14h.01"/></svg></div><h2 class="utility-title">Jeopardy</h2><p class="utility-description">Create a review board, play with teams or your whole class, and send points to the scoreboard.</p><div class="open-row">Open Jeopardy <span class="open-arrow">→</span></div></a></section></main><script src="shared/dashboard-data.js"></script><script src="shared/bell-service.js"></script><script src="shared/reminder-service.js"></script></body></html>
