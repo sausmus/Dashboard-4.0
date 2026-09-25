@@ -89,7 +89,7 @@
   <div class="setup-grid"><label>Challenge name<input id="title" maxlength="90"></label><label>Game format<select id="challengeMode"><option value="single">Quick single game</option><option value="day">Class-day competition</option></select></label></div>
   <div class="setup-grid"><label id="singlePeriodLabel">Class period<select id="singlePeriod"></select></label><label>Round timing<select id="timingMode"><option value="timed">Timed</option><option value="untimed">No time limit</option></select></label></div>
   <label id="minutesLabel">Minutes per class<input id="minutes" type="number" value="5" min="1" max="60" step="1"></label>
-  <label>Puzzle method<select id="method"><option value="random">Random puzzle</option><option value="letters">Choose seven letters</option><option value="pangram">Enter a pangram</option></select></label>
+  <div class="setup-grid"><label>Difficulty<select id="difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></label><label>Puzzle method<select id="method"><option value="random">Random puzzle</option><option value="letters">Choose seven letters</option><option value="pangram">Enter a pangram</option></select></label></div>
   <label id="letterLabel" hidden>Seven different letters<input id="letters" placeholder="A C E H R S T" maxlength="30"></label>
   <label id="pangramLabel" hidden>Pangram word<input id="pangram" placeholder="TEACHERS" maxlength="60"></label>
   <label>Required center letter<select id="center"><option value="auto">Choose automatically</option></select></label>
@@ -101,7 +101,7 @@
     <label class="checkbox"><input type="checkbox" id="reviewed"> I have reviewed this answer bank.</label>
     <button id="saveChallenge" class="primary">Create Word Hive</button>
   </section>
-  <p class="subtle">The letters, answer bank, timing choice, and visible periods are saved with the game. Corrections to disputed words can be applied before the result is awarded.</p>
+  <p class="subtle">Difficulty changes the random hive and automatic center-letter selection: Easy favors broader, more approachable word banks; Medium balances options and challenge; Hard favors tighter banks and trickier required letters. If you manually choose the center letter, that choice takes priority. The letters, answer bank, timing choice, and visible periods are saved with the game.</p>
 </dialog>
 
 <dialog id="disputeDialog"><div class="dialog-head"><h2>Disputed words</h2><button data-close="disputeDialog">Done</button></div><p>These words followed the letter rules but were not in the answer bank. Approving a word credits every period that tried it during its round.</p><div id="disputeList"></div></dialog>
