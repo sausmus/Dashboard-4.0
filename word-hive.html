@@ -1,13 +1,110 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Word Hive | Teacher Dashboard</title><link rel="icon" href="bjh-logo.png"><link rel="stylesheet" href="shared/word-hive.css"><link rel="stylesheet" href="shared/game-competition-award.css"></head><body>
-<main class="app"><header><div><nav><a href="index.html">Dashboard</a><span>/</span><a href="games.html">Games</a><span>/</span>Word Hive</nav><h1>Word Hive<span class="tag">CLASS CHALLENGE</span></h1></div><div class="actions"><button id="fullscreen">Full screen</button><button id="teacher" class="dark">Teacher controls</button></div></header>
-<p id="notice" role="status" aria-live="polite"></p>
-<section id="empty" class="card welcome"><div class="eyebrow">SEVEN LETTERS. ONE SHARED CHALLENGE.</div><h2>A hive full of possibilities.</h2><p>Same puzzle. Same time. A fresh start for every class.</p><button id="createFirst" class="primary">Create a challenge</button><p class="subtle">Scores stay here until you post the class results together.</p></section>
-<section id="game" hidden><div class="challenge-bar"><div><p class="eyebrow" id="challengeDate"></p><h2 id="challengeTitle"></h2></div><label>Playing period<select id="period"></select></label></div>
-<div class="game-layout"><section class="card game-card"><div class="round-header"><div><span class="eyebrow" id="roundStatus">READY</span><div id="timer" role="timer" aria-label="Time remaining">05:00</div></div><div class="score-box"><strong id="score">0</strong><span>POINTS</span></div></div><form id="guessForm" autocomplete="off"><label class="sr-only" for="guess">Your word</label><input id="guess" placeholder="Build a word…" spellcheck="false" autocapitalize="off" maxlength="60"><p id="feedback" role="status" aria-live="polite">Use the gold center letter in every word.</p><div id="hive" class="hive" aria-label="Hive letters"></div><div class="entry-actions"><button id="delete" type="button">Delete</button><button id="shuffle" type="button" aria-label="Shuffle outer letters">↻ Shuffle</button><button id="enter" type="submit" class="dark">Enter</button></div></form><button id="startRound" class="primary wide">Start round</button><p id="roundNote" class="subtle"></p></section>
-<aside class="card found-card"><div class="found-header"><h3>Words found</h3><span id="foundCount">0</span></div><div id="found" class="found-words"></div><div class="rules"><strong>Make every letter count.</strong><p>Four or more letters. Always include the gold letter. Reuse letters as often as you like.</p><p>4 letters = 1 point · Longer words = their length<br>All 7 letters = 7 bonus points</p></div></aside></div></section>
-<footer>Word Hive · Teacher Dashboard <span>Saved in this browser. Use Export in Teacher controls for backups.</span></footer></main>
-<dialog id="teacherDialog"><div class="dialog-head"><div><p class="eyebrow">TEACHER CONTROLS</p><h2>Challenge center</h2></div><button data-close="teacherDialog">Done</button></div><p class="subtle">Open this panel with the projector hidden. These controls are not password protected.</p><div class="actions"><label>Saved challenges<select id="challengeSelect"></select></label><button id="newChallenge" class="primary">New challenge</button><button id="export">Export backup</button><button id="import">Import backup</button><input type="file" id="importFile" accept=".json,application/json" hidden></div><section id="teacherCurrent"><div class="actions"><button id="pause">Pause current round</button><button id="finish">End current round early</button></div><p id="resultNote" class="subtle"></p><div class="table-wrap"><table><thead><tr><th>Period</th><th>Status</th><th>Words</th><th>Score</th><th>Include</th></tr></thead><tbody id="results"></tbody></table></div><div class="actions"><button id="disputes">Review disputed words</button><button id="post" class="primary">Award to Scoreboard</button></div><p id="postedMessage"></p></section></dialog>
-<dialog id="setupDialog"><div class="dialog-head"><div><p class="eyebrow">NEW CHALLENGE</p><h2>Build your hive.</h2></div><button data-close="setupDialog">Cancel</button></div><div class="setup-grid"><label>Challenge name<input id="title" maxlength="90"></label><label>Minutes per class<input id="minutes" type="number" value="5" min="1" max="60" step="1"></label></div><div class="setup-grid"><label>Game format<select id="challengeMode"><option value="day">Class-day competition</option><option value="single">Single game</option></select></label><label id="singlePeriodLabel" hidden>Class period<select id="singlePeriod"></select></label></div><label>Puzzle method<select id="method"><option value="random">Random puzzle</option><option value="letters">Choose seven letters</option><option value="pangram">Enter a pangram</option></select></label><label id="letterLabel" hidden>Seven different letters<input id="letters" placeholder="A C E H R S T" maxlength="30"></label><label id="pangramLabel" hidden>Pangram word<input id="pangram" placeholder="TEACHERS" maxlength="60"></label><label>Required center letter<select id="center"><option value="auto">Choose automatically</option></select></label><div class="actions"><button id="generate" class="dark">Generate puzzle</button><span id="dictionaryStatus" class="subtle">Loading dictionary…</span></div><section id="preview" hidden><p class="eyebrow" id="previewLetters"></p><p id="bankCount"></p><label>Preview / edit accepted words<textarea id="bank" rows="8" spellcheck="false"></textarea></label><p class="subtle">One word per line. Pangrams use all seven letters. This broad dictionary includes uncommon vocabulary; remove words you do not want and add any you approve.</p><label class="checkbox"><input type="checkbox" id="reviewed"> I have reviewed this answer bank.</label><button id="saveChallenge" class="primary">Use for today's challenge</button></section><p class="subtle">The letters, answer bank, time limit, and visible periods are saved for this challenge. Corrections to disputed words can be applied to every class after all rounds finish.</p></dialog>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Word Hive | Teacher Dashboard</title>
+  <link rel="icon" href="bjh-logo.png">
+  <link rel="stylesheet" href="shared/word-hive.css">
+  <link rel="stylesheet" href="shared/game-competition-award.css">
+</head>
+<body>
+<a class="dashboard-back" href="games.html">← Games</a>
+<main class="app">
+  <header>
+    <div><h1>Word Hive <span class="tag">CLASSROOM</span></h1></div>
+    <div class="actions"><button id="fullscreen">Full screen</button><button id="teacher" class="dark">Teacher controls</button></div>
+  </header>
+  <p id="notice" role="status" aria-live="polite"></p>
+
+  <section id="empty" class="card welcome">
+    <div class="eyebrow">SEVEN LETTERS. COUNTLESS WORDS.</div>
+    <h2>A hive full of possibilities.</h2>
+    <p>Choose a quick game for one class or run the same challenge across the day.</p>
+    <div class="welcome-actions">
+      <button id="createSingle" class="primary">Quick Single Game</button>
+      <button id="createCompetition">Class Competition</button>
+    </div>
+    <p class="subtle">Both modes can be timed or played with no time limit.</p>
+  </section>
+
+  <section id="game" hidden>
+    <div class="challenge-bar">
+      <div><p class="eyebrow" id="challengeDate"></p><h2 id="challengeTitle"></h2></div>
+      <label>Playing period<select id="period"></select></label>
+    </div>
+    <div class="game-layout">
+      <section class="card game-card">
+        <div class="round-header">
+          <div><span class="eyebrow" id="roundStatus">READY</span><div id="timer" role="timer" aria-label="Time remaining">05:00</div></div>
+          <div class="score-box"><strong id="score">0</strong><span>POINTS</span></div>
+        </div>
+        <form id="guessForm" autocomplete="off">
+          <label class="sr-only" for="guess">Your word</label>
+          <div class="guess-entry">
+            <div id="guessVisual" aria-hidden="true"></div>
+            <input id="guess" placeholder="Build a word…" spellcheck="false" autocapitalize="off" maxlength="60">
+          </div>
+          <p id="feedback" role="status" aria-live="polite">Use the gold center letter in every word.</p>
+          <div id="hive" class="hive" aria-label="Hive letters"></div>
+          <div class="entry-actions"><button id="delete" type="button">Delete</button><button id="shuffle" type="button" aria-label="Shuffle outer letters">↻ Shuffle</button><button id="enter" type="submit" class="dark">Enter</button></div>
+        </form>
+        <button id="startRound" class="primary wide">Start round</button>
+        <p id="roundNote" class="subtle"></p>
+      </section>
+      <aside class="card found-card">
+        <div class="found-header"><h3>Words found</h3><span id="foundCount">0</span></div>
+        <div id="found" class="found-words"></div>
+        <div class="rules"><strong>Make every letter count.</strong><p>Four or more letters. Always include the gold letter. Reuse letters as often as you like.</p><p>4 letters = 1 point · Longer words = their length<br>All 7 letters = 7 bonus points</p></div>
+      </aside>
+    </div>
+  </section>
+  <footer>Word Hive · Teacher Dashboard <span>Saved in this browser. Use Export in Teacher controls for backups.</span></footer>
+</main>
+
+<dialog id="teacherDialog">
+  <div class="dialog-head"><div><p class="eyebrow">TEACHER CONTROLS</p><h2>Challenge center</h2></div><button data-close="teacherDialog">Done</button></div>
+  <p class="subtle">Open this panel with the projector hidden. These controls are not password protected.</p>
+  <div class="actions saved-controls">
+    <label>Saved games<select id="challengeSelect"></select></label>
+    <button id="newSingle" class="primary">Quick Single Game</button>
+    <button id="newCompetition">Class Competition</button>
+    <button id="deleteChallenge" class="danger-button">Delete Saved Game</button>
+    <button id="deleteAllChallenges" class="danger-button">Delete All Saved Games</button>
+    <button id="export">Export backup</button>
+    <button id="import">Import backup</button>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+  </div>
+  <section id="teacherCurrent">
+    <div class="actions"><button id="pause">Pause current round</button><button id="finish">End current round early</button></div>
+    <p id="resultNote" class="subtle"></p>
+    <div class="table-wrap"><table><thead><tr><th>Period</th><th>Status</th><th>Words</th><th>Score</th><th>Include</th></tr></thead><tbody id="results"></tbody></table></div>
+    <div class="actions"><button id="disputes">Review disputed words</button><button id="post" class="primary">Award to Scoreboard</button></div>
+    <p id="postedMessage"></p>
+  </section>
+</dialog>
+
+<dialog id="setupDialog">
+  <div class="dialog-head"><div><p class="eyebrow">NEW WORD HIVE</p><h2>Build your hive.</h2></div><button data-close="setupDialog">Cancel</button></div>
+  <div class="setup-grid"><label>Challenge name<input id="title" maxlength="90"></label><label>Game format<select id="challengeMode"><option value="single">Quick single game</option><option value="day">Class-day competition</option></select></label></div>
+  <div class="setup-grid"><label id="singlePeriodLabel">Class period<select id="singlePeriod"></select></label><label>Round timing<select id="timingMode"><option value="timed">Timed</option><option value="untimed">No time limit</option></select></label></div>
+  <label id="minutesLabel">Minutes per class<input id="minutes" type="number" value="5" min="1" max="60" step="1"></label>
+  <label>Puzzle method<select id="method"><option value="random">Random puzzle</option><option value="letters">Choose seven letters</option><option value="pangram">Enter a pangram</option></select></label>
+  <label id="letterLabel" hidden>Seven different letters<input id="letters" placeholder="A C E H R S T" maxlength="30"></label>
+  <label id="pangramLabel" hidden>Pangram word<input id="pangram" placeholder="TEACHERS" maxlength="60"></label>
+  <label>Required center letter<select id="center"><option value="auto">Choose automatically</option></select></label>
+  <div class="actions"><button id="generate" class="dark">Generate puzzle</button><span id="dictionaryStatus" class="subtle">Loading dictionary…</span></div>
+  <section id="preview" hidden>
+    <p class="eyebrow" id="previewLetters"></p><p id="bankCount"></p>
+    <label>Preview / edit accepted words<textarea id="bank" rows="8" spellcheck="false"></textarea></label>
+    <p class="subtle">One word per line. Pangrams use all seven letters. This broad dictionary includes uncommon vocabulary; remove words you do not want and add any you approve.</p>
+    <label class="checkbox"><input type="checkbox" id="reviewed"> I have reviewed this answer bank.</label>
+    <button id="saveChallenge" class="primary">Create Word Hive</button>
+  </section>
+  <p class="subtle">The letters, answer bank, timing choice, and visible periods are saved with the game. Corrections to disputed words can be applied before the result is awarded.</p>
+</dialog>
+
 <dialog id="disputeDialog"><div class="dialog-head"><h2>Disputed words</h2><button data-close="disputeDialog">Done</button></div><p>These words followed the letter rules but were not in the answer bank. Approving a word credits every period that tried it during its round.</p><div id="disputeList"></div></dialog>
 
-<script src="shared/dashboard-data.js"></script><script src="shared/competition-service.js"></script><script src="shared/game-competition-award.js"></script><script src="shared/word-hive-core.js"></script><script src="shared/word-hive.js"></script><script src="shared/bell-service.js"></script><script src="shared/reminder-service.js"></script></body></html>
+<script src="shared/dashboard-data.js"></script><script src="shared/competition-service.js"></script><script src="shared/game-competition-award.js"></script><script src="shared/word-hive-core.js"></script><script src="shared/word-hive.js"></script><script src="shared/bell-service.js"></script><script src="shared/reminder-service.js"></script>
+</body></html>

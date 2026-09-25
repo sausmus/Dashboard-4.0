@@ -48,3 +48,13 @@ Suggested smoke test
 6. Jeopardy: play a Single Game and award it.
 7. Jeopardy: play two or more class-day games, verify saved results, then award the competition.
 8. In Scoreboard, verify each appears under Recent Competitions and that deleting a competition removes its championship-point contribution.
+
+2026-09-24 Games polish update
+- Wordle fullscreen now compacts the board and keyboard to fit the projector view without scrolling.
+- Games hub now uses the same Dashboard back-button design as the other utilities.
+- Wordle, Word Hive, and Jeopardy now use a simple Back to Games button instead of breadcrumb navigation.
+- Word Hive styling now matches the Teacher Dashboard's neutral gray/white/blue visual system while preserving the gold center hex.
+- Word Hive landing and Teacher controls now offer Quick Single Game and Class Competition entry points.
+- Word Hive typing now fades letters that are not part of the active honeycomb.
+- Word Hive now supports Timed or No time limit rounds.
+- Word Hive Teacher controls can delete one saved game or all saved games; existing Scoreboard awards are not removed.

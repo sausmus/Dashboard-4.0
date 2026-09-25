@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Jeopardy | Teacher Dashboard</title><link rel="icon" href="bjh-logo.png"><link rel="stylesheet" href="shared/jeopardy.css"><link rel="stylesheet" href="shared/game-competition-award.css"></head>
-<body><main class="app">
-<header><div><nav><a href="index.html">Dashboard</a> / <a href="games.html">Games</a> / Jeopardy</nav><h1>Jeopardy</h1></div><div class="row"><a class="button" href="scoreboard.html">Scoreboard</a><button id="present">Full screen</button></div></header>
+<body><a class="dashboard-back" href="games.html">← Games</a><main class="app">
+<header><div><h1>Jeopardy</h1></div><div class="row"><a class="button" href="scoreboard.html">Scoreboard</a><button id="present">Full screen</button></div></header>
 <p id="notice" role="status" aria-live="polite"></p>
 <section id="setup" class="panel"><h2>Your review boards</h2><div class="row"><label>Saved board<select id="boards"></select></label><button id="edit">Edit board</button><button id="new">New board</button><button id="export">Export board</button><button id="import">Import board</button><input id="file" type="file" accept=".json,application/json" hidden></div><div class="row"><label>Class period<select id="period"></select></label><label>Play with<select id="mode"><option value="class">Whole class</option><option value="teams">Teams</option></select></label><label id="teamLabel" hidden>Team names (one per line)<textarea id="names" rows="3">Team 1
 Team 2
