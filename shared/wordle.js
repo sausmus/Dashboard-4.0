@@ -6,7 +6,56 @@ const uid=()=>globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.ra
 const say=text=>{$('notice').textContent=text||'';};
 const make=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
 const COMMON_ANSWERS=`
-about above abuse actor acute admit adopt adore adult after again agent agile agree ahead alarm album alert alien align alike alive allow alone along alter amber among angel anger angle angry apart apple apply arena argue arise array aside asset audio avoid awake award aware awful bacon badge badly baker basic basin beach beard beast begin being below bench berry birth black blade blame blank blast blend blind block blood bloom blown board boast bonus boost booth bound brain brake brand brave bread break brick bride brief bring broad broke brown brush build built buyer cabin cable camel candy carry carve catch cause chain chair chalk charm chart chase cheap check cheer chest chief child chill choir chose civic claim class clean clear clerk click climb clock close cloud coach coast could count court cover craft crash crazy cream crime crisp cross crowd crown curve daily dairy dance dealt death debut delay delta dense depth diary digit dirty doubt dozen draft drama dream dress dried drill drink drive drove eager early earth eight elect elite empty enemy enjoy enter entry equal error event every exact exist extra faith false fancy fault favor feast field fifth fifty fight final first flame flash fleet floor flour fluid focus force forth forty forum found frame frank fresh front fruit funny giant given glass globe glory grace grade grain grand grant grape graph grasp grass great green greet grief gross group grown guard guess guest guide habit happy heart heavy hence honey horse hotel house human ideal image imply index inner input issue ivory joint judge juice knife known label large later laugh layer learn least leave lemon light limit local loose lucky lunch magic major maker maple march match maybe mayor medal media mercy metal might minor model money month moral motor mount mouse mouth movie music nasty naval nerve never night noise north novel nurse occur ocean offer often order other ought paint panel paper party peace phase phone photo piece pilot pitch place plain plane plant plate point pound power press price pride prime print prior prize proof proud queen quick quiet quite radio raise range rapid ratio reach ready realm reply right river robot rough round route royal rural scale scene scope score sense serve seven shade shake shall shape share sharp sheet shelf shell shift shine shirt shock shoot short shown sight since skill sleep small smart smile solid solve sorry sound south space spare speak speed spend spice split sport staff stage stair stake stand start state steam steel stick still stock stone store storm story strip style sugar suite super sweet table taken taste teach thank their theme there thick thing think third those three throw tight times tired title today topic total touch tough tower track trade train treat trend trial tribe trick truck truly trust truth twice under union unity until upper urban usual vague valid value video visit vital voice waste watch water wheel where which while white whole woman world worry worth would write wrong young youth zebra
+about above abuse actor acute admit adopt adore adult after again agent agile agree ahead alarm album alert alien align
+alike alive allow alone along alter amber among angel anger angle angry apart apple apply arena argue arise array aside
+asset audio avoid awake award aware awful bacon badge badly baker basic basin beach beard beast begin being below bench
+berry birth black blade blame blank blast blend blind block blood bloom blown board boast bonus boost booth bound brain
+brake brand brave bread break brick bride brief bring broad broke brown brush build built buyer cabin cable camel candy
+carry carve catch cause chain chair chalk charm chart chase cheap check cheer chest chief child chill choir chose civic
+claim class clean clear clerk click climb clock close cloud coach coast could count court cover craft crash crazy cream
+crime crisp cross crowd crown curve daily dairy dance dealt death debut delay delta dense depth diary digit dirty doubt
+dozen draft drama dream dress dried drill drink drive drove eager early earth eight elect elite empty enemy enjoy enter
+entry equal error event every exact exist extra faith false fancy fault favor feast field fifth fifty fight final first
+flame flash fleet floor flour fluid focus force forth forty forum found frame frank fresh front fruit funny giant given
+glass globe glory grace grade grain grand grant grape graph grasp grass great green greet grief gross group grown guard
+guess guest guide habit happy heart heavy hence honey horse hotel house human ideal image imply index inner input issue
+ivory joint judge juice knife known label large later laugh layer learn least leave lemon light limit local loose lucky
+lunch magic major maker maple march match maybe mayor medal media mercy metal might minor model money month moral motor
+mount mouse mouth movie music nasty naval nerve never night noise north novel nurse occur ocean offer often order other
+ought paint panel paper party peace phase phone photo piece pilot pitch place plain plane plant plate point pound power
+press price pride prime print prior prize proof proud queen quick quiet quite radio raise range rapid ratio reach ready
+realm reply right river robot rough round route royal rural scale scene scope score sense serve seven shade shake shall
+shape share sharp sheet shelf shell shift shine shirt shock shoot short shown sight since skill sleep small smart smile
+solid solve sorry sound south space spare speak speed spend spice split sport staff stage stair stake stand start state
+steam steel stick still stock stone store storm story strip style sugar suite super sweet table taken taste teach thank
+their theme there thick thing think third those three throw tight times tired title today topic total touch tough tower
+track trade train treat trend trial tribe trick truck truly trust truth twice under union unity until upper urban usual
+vague valid value video visit vital voice waste watch water wheel where which while white whole woman world worry worth
+would write wrong young youth zebra aback abase abate abbey abide abode abort aches acids acorn acres acted adapt added
+admin adobe affix aging aided aimed aisle alias alibi alley alloy aloud amaze amend ample amuse ankle annoy apron aptly
+arbor armed aroma arose arrow ashes atlas attic avail avert bagel bands banks barge barns bases batch bathe baton beams
+beans bears beats began bells belts bends bills bingo birds bites bland blaze bleak bleed bless blobs blond blunt blush
+bolts bones books bored borne bossy bowls boxer boxes brace braid brass brawl brawn brisk brook broom broth buddy buggy
+bunch bunny burns burst buses cafes cakes calls camps canal canoe cards cargo cater cents chant chaos chats cheat cheek
+chess chick chips chord chore chunk cited cites civil clamp clash cliff cling cloak clone cloth clubs clues cocoa codes
+coins comic coral cords couch cough crane crawl creep crops crude crush cubic curly cycle dated dates deals debit debug
+decay decks decor depot diner disco ditch dizzy docks dodge doing dolls donor doors donut drain drank drawl drawn dread
+drift drone drown drums dryer eagle edges elbow elder email equip erase essay faced faces facts fairy farms fatal feeds
+feels fence ferry fetch fever fewer fiber fiery fined fines fired fires firms fists fixed fixes flags flank flare flats
+flesh flick flies fling float flock flood flows flush folds foods forge forms fraud freak fries frost fuels fully fuzzy
+gains gamer games gangs gases gates gauge gears genes genre ghost gifts gives gland glare glaze glove glued goals goats
+goose grave greed grill guilt hairs handy hangs hardy harms harsh haste hates heads heard hedge heels hello herbs hides
+highs hikes hills hints hired hires hobby holds holes homes honor hooks hoped hopes hosts humid humor inbox indie items
+jewel keeps kicks kills kinds kings knees lakes lamps lands lanes laser leads legal level likes lines links liver loads
+loans locks lodge logic login lower lying makes marks marry meals meets meter miles minds miner mines mound muddy noble
+noted notes olive ounce ovens owner pairs panic parks parts pasta patch paths pearl piano picks piles pills pipes pizza
+plays plaza plots pools porch poses posts pulse quote races rains rally ranch react rebel refer relax relay reset rings
+rinse roads roast rocks roles rooms rugby sadly safer sails salad sales sauce saved scans scare scout seats seeds seeks
+seems sells shark sheep sheer ships shoes shops shows sides sites skins slice slide smell smoke snake socks songs sorts
+spike spots stars stays steal steep stems steps stole stood stops stove strap straw stuck study stuff takes tales tanks
+teams tears teeth tells thief tiles toast trail trees trips trunk tubes views waits wants wears weeks weird whale wheat
+whose woods words worse worst yards years cider crack ebony gravy jolly kayak mango melon onion peach petal puppy quilt
+rainy raven robin shiny shore skunk sloth snowy sunny tiger tulip vapor vivid wagon waltz windy witch zesty daisy flute
 `.trim().split(/\s+/);
 const ANSWERS=[...new Set(COMMON_ANSWERS.filter(w=>/^[a-z]{5}$/.test(w)))];
 let data={version:1,session:null},activePeriod='',currentInput='',pendingReveal=null,dictionary=new Set(ANSWERS),dictionaryReady=false,blocked=false;
