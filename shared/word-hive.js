@@ -43,7 +43,7 @@ function render(){
   if(!c.periods.some(p=>p.id===activePeriod))activePeriod=c.periods.find(p=>['running','paused'].includes(c.rounds[p.id].status))?.id||c.periods.find(p=>p.id===String(DashboardData.getCurrentClassId()))?.id||c.periods[0].id;
   options($('period'),c.periods.map(p=>[p.id,p.name]),activePeriod);
   $('challengeTitle').textContent=c.title;
-  $('challengeDate').textContent=new Date(c.createdAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})+' · '+(isTimed(c)?c.durationMs/60000+' MINUTES PER CLASS':'NO TIME LIMIT');
+  $('challengeDate').textContent=new Date(c.createdAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})+' · '+String(c.difficulty||'medium').toUpperCase()+' · '+(isTimed(c)?c.durationMs/60000+' MINUTES PER CLASS':'NO TIME LIMIT');
   const r=currentRound();$('roundStatus').textContent=c.posted?'RESULTS POSTED':r.status.toUpperCase();$('score').textContent=C.roundScore(c,r);
   const accepted=r.attempts.filter(w=>c.words.includes(w)).sort();$('foundCount').textContent=accepted.length;$('found').replaceChildren(...accepted.map(w=>node('span',w,C.letters(w).length===7?'word pangram':'word')));if(!accepted.length)$('found').append(node('p',r.status==='ready'?'A fresh word list for this class.':'Your accepted words will appear here.','subtle'));
   const enabled=r.status==='running'&&!c.posted&&!blocked;for(const id of ['guess','enter','delete'])$(id).disabled=!enabled;
@@ -69,7 +69,7 @@ function renderTeacher(){
 $('period').onchange=safe(()=>{activePeriod=$('period').value;clearGuess();feedback('Use the gold center letter in every word.');render();DashboardData.setCurrentClass(activePeriod);});
 $('guess').addEventListener('input',paintGuess);
 on('startRound',()=>{expireAll();if(running())throw Error('Finish the active round first.');const c=current();if(c.posted||currentRound().status!=='ready')return;change(ch=>{const r=ch.rounds[activePeriod];r.status='running';if(isTimed(ch)){r.remainingMs=ch.durationMs;r.startedAt=Date.now();r.deadline=r.startedAt+ch.durationMs;r.untimed=false;}else{r.remainingMs=0;r.startedAt=Date.now();r.deadline=null;r.untimed=true;}});render();$('guess').focus();});
-$('guessForm').onsubmit=safe(e=>{e.preventDefault();expireAll();const c=current(),r=currentRound();if(!c||r.status!=='running'||c.posted||(isTimed(c)&&C.remaining(r)===0))return;const word=C.normalize($('guess').value);if(!/^[a-z]+$/.test(word)){feedback('Use letters A–Z only.');return;}if(word.length<4){feedback('Use at least four letters.');return;}if(!word.includes(c.center)){feedback('Include the gold center letter.');return;}if([...word].some(l=>!c.letters.includes(l))){feedback('Use only the seven hive letters.');return;}if(r.attempts.includes(word)){feedback('You already tried that word.');return;}change(ch=>ch.rounds[activePeriod].attempts.push(word));const accepted=c.words.includes(word);feedback(accepted?(C.letters(word).length===7?'Pangram! ':'')+'+'+C.points(word)+' points':'Not in this word bank. Saved for teacher review.');clearGuess();render();$('guess').focus();});
+$('guessForm').onsubmit=safe(e=>{e.preventDefault();expireAll();const c=current(),r=currentRound();if(!c||r.status!=='running'||c.posted||(isTimed(c)&&C.remaining(r)===0))return;const word=C.normalize($('guess').value);if(!/^[a-z]+$/.test(word)){feedback('Use letters A–Z only.');return;}if(word.length<4){feedback('Use at least four letters.');return;}if(!word.includes(c.center)){feedback('Include the gold center letter.');return;}if([...word].some(l=>!c.letters.includes(l))){feedback('Use only the seven hive letters.');return;}if(r.attempts.includes(word)){feedback(c.words.includes(word)?'Already found!':'Already tried!');clearGuess();$('guess').focus();return;}change(ch=>ch.rounds[activePeriod].attempts.push(word));const accepted=c.words.includes(word);feedback(accepted?(C.letters(word).length===7?'Pangram! ':'')+'+'+C.points(word)+' points':'Not in this word bank. Saved for teacher review.');clearGuess();render();$('guess').focus();});
 on('delete',()=>{$('guess').value=$('guess').value.slice(0,-1);paintGuess();$('guess').focus();});
 on('shuffle',()=>{for(let i=outer.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[outer[i],outer[j]]=[outer[j],outer[i]];}paintHive();});
 on('teacher',()=>{expireAll();renderTeacher();$('teacherDialog').showModal();});
@@ -83,22 +83,51 @@ function syncChallengeMode(){$('singlePeriodLabel').hidden=$('challengeMode').va
 function syncTimingMode(){$('minutesLabel').hidden=$('timingMode').value==='untimed';}
 function newChallenge(mode='day'){
   if(running())throw Error('Finish the active round before creating another game.');
-  if($('teacherDialog').open)$('teacherDialog').close();draft=null;$('preview').hidden=true;$('title').value='Word Hive · '+new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('reviewed').checked=false;$('challengeMode').value=mode==='single'?'single':'day';$('timingMode').value='timed';$('minutes').value='5';refreshSinglePeriods();syncChallengeMode();syncTimingMode();$('setupDialog').showModal();
+  if($('teacherDialog').open)$('teacherDialog').close();draft=null;$('preview').hidden=true;$('title').value='Word Hive · '+new Date().toLocaleDateString(undefined,{month:'short',day:'numeric'});$('reviewed').checked=false;$('challengeMode').value=mode==='single'?'single':'day';$('timingMode').value='timed';$('difficulty').value='medium';$('minutes').value='5';refreshSinglePeriods();syncChallengeMode();syncTimingMode();$('setupDialog').showModal();
 }
 on('createSingle',()=>newChallenge('single'));on('createCompetition',()=>newChallenge('day'));on('newSingle',()=>newChallenge('single'));on('newCompetition',()=>newChallenge('day'));
 $('challengeMode').onchange=syncChallengeMode;$('timingMode').onchange=syncTimingMode;
 function resetPreview(){draft=null;$('preview').hidden=true;$('reviewed').checked=false;}
 function setCenters(){resetPreview();const hive=$('method').value==='letters'?$('letters').value.replace(/\s/g,''):$('method').value==='pangram'?$('pangram').value.trim():'';options($('center'),[['auto','Choose automatically'],...C.letters(hive).split('').filter(l=>/[a-z]/.test(l)).map(l=>[l,l.toUpperCase()])]);}
-$('method').onchange=()=>{$('letterLabel').hidden=$('method').value!=='letters';$('pangramLabel').hidden=$('method').value!=='pangram';setCenters();};$('letters').oninput=setCenters;$('pangram').oninput=setCenters;$('center').onchange=resetPreview;$('bank').oninput=()=>{$('reviewed').checked=false;};
-function build(hive,center){if(center!=='auto')return C.puzzle(index,hive,center);const possibilities=[];for(const letter of hive){try{possibilities.push(C.puzzle(index,hive,letter));}catch{}}if(!possibilities.length)throw Error('No playable center letter found. Try another hive.');return possibilities.sort((a,b)=>Math.abs(a.words.length-60)-Math.abs(b.words.length-60))[0];}
-on('generate',async()=>{if(!dictionaryReady)throw Error('The dictionary is still loading. If it failed, refresh the page.');$('generate').disabled=true;resetPreview();try{await new Promise(resolve=>setTimeout(resolve,0));const method=$('method').value;let hive;if(method==='random'){const shuffled=seeds.slice();for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}for(const seed of shuffled){try{const candidate=build(C.letters(seed),'auto');if(candidate.words.length<=180){draft=candidate;break;}}catch{}}if(!draft)throw Error('No random puzzle is available. Try entering your own pangram.');}else{const raw=C.normalize(method==='letters'?$('letters').value.replace(/\s/g,''):$('pangram').value);if(!/^[a-z]+$/.test(raw))throw Error('Enter letters A–Z only.');if(method==='letters'&&raw.length!==7)throw Error('Enter seven different letters, without repeats.');hive=C.letters(raw);if(hive.length!==7)throw Error('The puzzle needs exactly seven unique letters.');if(method==='pangram'&&!dictionary.has(raw))throw Error('That pangram is not in the built-in dictionary. Use Choose seven letters, then add your word to the answer bank.');draft=build(hive,$('center').value);} $('previewLetters').textContent=draft.letters.toUpperCase().split('').join(' · ')+' — CENTER: '+draft.center.toUpperCase();$('bankCount').textContent=draft.words.length+' words · '+draft.words.reduce((s,w)=>s+C.points(w),0)+' possible points · Pangrams: '+draft.words.filter(w=>C.letters(w).length===7).join(', ');$('bank').value=draft.words.join('\n');$('preview').hidden=false;}finally{$('generate').disabled=false;}});
+$('method').onchange=()=>{$('letterLabel').hidden=$('method').value!=='letters';$('pangramLabel').hidden=$('method').value!=='pangram';setCenters();};$('letters').oninput=setCenters;$('pangram').oninput=setCenters;$('center').onchange=resetPreview;$('difficulty').onchange=resetPreview;$('bank').oninput=()=>{$('reviewed').checked=false;};
+const DIFFICULTY={
+  easy:{target:155,min:120,max:180},
+  medium:{target:92,min:60,max:130},
+  hard:{target:36,min:10,max:70}
+};
+const CENTER_EASE={e:1,a:.98,r:.96,i:.94,o:.92,t:.9,n:.88,s:.86,l:.84,c:.74,d:.72,h:.7,m:.68,p:.66,u:.64,g:.61,b:.58,f:.55,y:.5,w:.48,v:.34,k:.28,j:.16,x:.13,q:.09,z:.07};
+function difficultyScore(candidate,difficulty){
+  const profile=DIFFICULTY[difficulty]||DIFFICULTY.medium,count=candidate.words.length,short=candidate.words.filter(w=>w.length<=5).length,pangrams=candidate.words.filter(w=>C.letters(w).length===7).length,ease=CENTER_EASE[candidate.center]??.5;
+  let score=Math.abs(count-profile.target);
+  if(count<profile.min)score+=(profile.min-count)*3;if(count>profile.max)score+=(count-profile.max)*3;
+  if(difficulty==='easy'){score+=(1-ease)*34;score+=Math.max(0,55-short)*.35;score+=Math.max(0,2-pangrams)*8;}
+  else if(difficulty==='hard'){score+=ease*24;score+=Math.max(0,short-35)*.18;}
+  else score+=Math.abs(ease-.65)*8;
+  return score;
+}
+function build(hive,center,difficulty='medium'){
+  if(center!=='auto')return C.puzzle(index,hive,center);
+  const possibilities=[];for(const letter of hive){try{possibilities.push(C.puzzle(index,hive,letter));}catch{}}
+  if(!possibilities.length)throw Error('No playable center letter found. Try another hive.');
+  return possibilities.sort((a,b)=>difficultyScore(a,difficulty)-difficultyScore(b,difficulty))[0];
+}
+function randomPuzzle(difficulty){
+  const profile=DIFFICULTY[difficulty]||DIFFICULTY.medium,shuffled=seeds.slice();for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+  let best=null,bestScore=Infinity,attempts=0;
+  for(const seed of shuffled){
+    attempts++;try{const candidate=build(C.letters(seed),'auto',difficulty),score=difficultyScore(candidate,difficulty);if(score<bestScore){best=candidate;bestScore=score;}if(candidate.words.length>=profile.min&&candidate.words.length<=profile.max){return candidate;}}catch{}
+    if(attempts>=28)break;
+  }
+  return best;
+}
+on('generate',async()=>{if(!dictionaryReady)throw Error('The dictionary is still loading. If it failed, refresh the page.');$('generate').disabled=true;resetPreview();try{await new Promise(resolve=>setTimeout(resolve,0));const method=$('method').value,difficulty=$('difficulty').value;let hive;if(method==='random'){draft=randomPuzzle(difficulty);if(!draft)throw Error('No random puzzle is available. Try entering your own pangram.');}else{const raw=C.normalize(method==='letters'?$('letters').value.replace(/\s/g,''):$('pangram').value);if(!/^[a-z]+$/.test(raw))throw Error('Enter letters A–Z only.');if(method==='letters'&&raw.length!==7)throw Error('Enter seven different letters, without repeats.');hive=C.letters(raw);if(hive.length!==7)throw Error('The puzzle needs exactly seven unique letters.');if(method==='pangram'&&!dictionary.has(raw))throw Error('That pangram is not in the built-in dictionary. Use Choose seven letters, then add your word to the answer bank.');draft=build(hive,$('center').value,difficulty);} $('previewLetters').textContent=draft.letters.toUpperCase().split('').join(' · ')+' — CENTER: '+draft.center.toUpperCase()+' · '+difficulty.toUpperCase();$('bankCount').textContent=draft.words.length+' words · '+draft.words.reduce((s,w)=>s+C.points(w),0)+' possible points · Pangrams: '+draft.words.filter(w=>C.letters(w).length===7).join(', ');$('bank').value=draft.words.join('\n');$('preview').hidden=false;}finally{$('generate').disabled=false;}});
 on('saveChallenge',()=>{
   if(!draft)throw Error('Generate a puzzle first.');if(running())throw Error('Finish the active round first.');
-  const title=$('title').value.trim(),timed=$('timingMode').value!=='untimed',minutes=timed?Number($('minutes').value):0;
+  const title=$('title').value.trim(),timed=$('timingMode').value!=='untimed',minutes=timed?Number($('minutes').value):0,difficulty=$('difficulty').value;
   if(!title)throw Error('Enter a challenge name.');if(timed&&(!Number.isInteger(minutes)||minutes<1||minutes>60))throw Error('Choose a whole number from 1 to 60 minutes.');
   const words=[...new Set($('bank').value.split(/[\s,]+/).map(C.normalize).filter(Boolean))].sort();if(words.length<10)throw Error('Keep at least 10 words in the answer bank.');if(words.some(w=>!C.validWord(w,draft.letters,draft.center)))throw Error('Every answer must have at least four letters, use only the hive letters, and include the center.');if(!words.some(w=>C.letters(w).length===7))throw Error('Keep at least one pangram.');if(!$('reviewed').checked)throw Error('Review the answer bank and check the confirmation box.');
   const allPeriods=DashboardData.getClasses({activeOnly:true}).map(p=>({id:String(p.id),name:p.name}));if(!allPeriods.length)throw Error('Enable at least one class in Dashboard Settings.');const mode=$('challengeMode').value==='single'?'single':'day';const periods=mode==='single'?allPeriods.filter(p=>p.id===$('singlePeriod').value):allPeriods;if(!periods.length)throw Error('Choose a class period for the single game.');
-  const durationMs=timed?minutes*60000:0;const c={id:uid(),title,mode,timed,letters:draft.letters,center:draft.center,words,durationMs,createdAt:Date.now(),periods,rounds:Object.fromEntries(periods.map(p=>[p.id,{status:'ready',remainingMs:durationMs,deadline:null,attempts:[],untimed:!timed}])),posted:null};
+  const durationMs=timed?minutes*60000:0;const c={id:uid(),title,mode,timed,difficulty,letters:draft.letters,center:draft.center,words,durationMs,createdAt:Date.now(),periods,rounds:Object.fromEntries(periods.map(p=>[p.id,{status:'ready',remainingMs:durationMs,deadline:null,attempts:[],untimed:!timed}])),posted:null};
   mutate(d=>{d.challenges.push(c);d.selected=c.id;});activePeriod='';$('setupDialog').close();render();say(mode==='single'?'Single game saved. Play this class, then award the result when you are ready.':'Competition saved. Every included class gets the same puzzle'+(timed?' and time limit.':'.'));
 });
 
