@@ -408,6 +408,7 @@
 
 
 <script src="shared/dashboard-data.js"></script>
+<script src="shared/competition-service.js"></script>
 <script src="shared/bell-service.js"></script>
 <script>
 /* =========================================================
@@ -1129,17 +1130,13 @@ function calculateCompetitionAwards(entries){
   const entered = entries.filter(entry => entry.scoreEntered);
   if(!entered.length) return;
 
-  if(competitionScoringMethod === "straight"){
-    entered.forEach(entry => {
-      entry.pointsInput.value = formatScore(entry.gameScore);
-    });
-    return;
-  }
-
-  const winningScore = Math.max(...entered.map(entry => entry.gameScore));
+  const awards = DashboardCompetitionService.calculate(
+    entered.map(entry => ({period:entry.period,score:entry.gameScore})),
+    competitionScoringMethod
+  );
   entered.forEach(entry => {
-    const award = winningScore > 0 ? roundScore((entry.gameScore / winningScore) * 10) : 0;
-    entry.pointsInput.value = award.toFixed(1);
+    const result = awards.find(row => String(row.period) === String(entry.period));
+    entry.pointsInput.value = result ? formatScore(result.award) : "";
   });
 }
 
@@ -1207,27 +1204,18 @@ document.getElementById("saveCompetition").addEventListener("click", () => {
 
   updateCompetitionPreview();
   const entries = readCompetitionRows();
-  const gameScores = {};
-  const changes = {};
-
-  entries.forEach(entry => {
-    gameScores[entry.period] = roundScore(entry.gameScore);
-    changes[entry.period] = roundScore(entry.award);
-  });
-
   const localNoon = new Date(`${dateValue}T12:00:00`);
-  activeEvents().push({
+  DashboardCompetitionService.addCompetition({
     id:makeId(),
-    type:"competition",
-    date:localNoon.toISOString(),
-    reason:name,
+    name,
+    date:localNoon,
+    season:state.activeSeason,
     scoringMethod:competitionScoringMethod,
-    scoringScale:competitionScoringMethod === "balanced" ? 10 : null,
-    gameScores,
-    changes
+    scores:entries.map(entry => ({period:entry.period,score:entry.gameScore})),
+    sourceApp:"Scoreboard"
   });
 
-  saveState();
+  state = loadState();
   renderAll();
   closeCompetitionModal();
   showToast(`${name} added to the championship.`);

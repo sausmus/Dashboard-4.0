@@ -1,0 +1,50 @@
+Teacher Dashboard Games Update
+==============================
+
+Shared competition system
+- Added shared/competition-service.js as the single competition scoring/storage layer.
+- Scoreboard New Competition now uses the shared Balanced-to-10 calculation and shared competition writer.
+- Added shared/game-competition-award.js + .css so games use the same Scoreboard-style award UI.
+- Game results are stored as Scoreboard competition events, so they appear under Recent Competitions and delete as one event.
+- Every game award screen lets the teacher choose Straight Points or Balanced to 10.
+- Duplicate event IDs are protected from double-awarding.
+
+Wordle
+- Added wordle.html, shared/wordle.css, and shared/wordle.js.
+- Six guesses, five-letter grid, physical keyboard support, and on-screen keyboard.
+- Green/yellow/gray clue logic handles duplicate letters.
+- Normal and Hard modes. Hard mode requires revealed clues to be reused.
+- Random word or teacher-entered custom word.
+- Single Game or Class-Day Competition.
+- Class-Day Competition can use the same word for every class or a different random word for each class.
+- Score: 1st guess = 6 game points, then 5/4/3/2/1; unsolved = 0.
+- Class-day results are held until all included periods finish or are excluded, then awarded together.
+- Single Game can be awarded immediately after the round.
+- Uses the existing Word Hive dictionary for broad five-letter guess validation, with a built-in fallback answer bank.
+- Full-screen sizing is enlarged for classroom projection.
+
+Word Hive
+- Added Single Game vs Class-Day Competition when creating a challenge.
+- Single Game lets the teacher select one active class period.
+- Replaced the old Balanced-only post dialog with the shared Scoreboard-style award UI.
+- Word Hive can now use either Straight Points or Balanced to 10.
+
+Jeopardy
+- Added Single Game vs Class-Day Competition scoreboard format.
+- Single Game sends the finished class result through the shared award UI.
+- Class-Day Competition saves each period's raw Jeopardy result and lets the teacher award all saved class results together.
+- Class-day competition progress survives page reloads.
+- Replaced the old custom 0-10 award dialog with the shared Scoreboard-style award UI.
+
+Games hub
+- Added a Wordle card to games.html.
+
+Suggested smoke test
+1. Open Scoreboard once and confirm the active championship.
+2. Wordle: create a Single Game, solve it, test Straight Points and Balanced to 10 preview.
+3. Wordle: create a Class-Day Competition with different words; finish/exclude all periods and award.
+4. Word Hive: create a Single Game, finish the round, and award.
+5. Word Hive: create a class-day challenge, finish/exclude periods, and award.
+6. Jeopardy: play a Single Game and award it.
+7. Jeopardy: play two or more class-day games, verify saved results, then award the competition.
+8. In Scoreboard, verify each appears under Recent Competitions and that deleting a competition removes its championship-point contribution.

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Wordle | Teacher Dashboard</title><link rel="icon" href="bjh-logo.png"><link rel="stylesheet" href="shared/wordle.css"><link rel="stylesheet" href="shared/game-competition-award.css"></head>
+<body><main class="app">
+<header><div><nav><a href="index.html">Dashboard</a><span>/</span><a href="games.html">Games</a><span>/</span>Wordle</nav><h1>Wordle <span class="tag">CLASSROOM</span></h1></div><div class="actions"><a class="button" href="scoreboard.html">Scoreboard</a><button id="fullscreen">Full screen</button><button id="teacher" class="dark">Teacher controls</button></div></header>
+<p id="notice" role="status" aria-live="polite"></p>
+<section id="empty" class="card welcome"><div class="eyebrow">FIVE LETTERS. SIX TRIES.</div><h2>Ready for the class Wordle?</h2><p>Play once with a single class or run a competition across the whole day.</p><button id="createFirst" class="primary">Create a game</button><p class="subtle">Class-day mode can use one shared word or a different word for every period.</p></section>
+<section id="game" hidden>
+  <div class="game-bar"><div><p class="eyebrow" id="gameMeta"></p><h2 id="gameTitle"></h2></div><label id="periodLabel">Playing period<select id="period"></select></label></div>
+  <section class="play-card card">
+    <div class="status-row"><div><span class="mode-pill" id="rulePill">NORMAL</span><span class="mode-pill secondary" id="formatPill">SINGLE GAME</span></div><div class="score-summary" id="scoreSummary"></div></div>
+    <div id="board" class="wordle-board" aria-label="Wordle board"></div>
+    <p id="feedback" class="feedback" role="status" aria-live="polite">Press Start when your class is ready.</p>
+    <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+    <div class="play-actions"><button id="startRound" class="primary">Start this class</button><button id="awardSingle" class="primary" hidden>Award to Scoreboard</button></div>
+  </section>
+</section>
+<footer>Wordle · Teacher Dashboard <span>Saved in this browser.</span></footer>
+</main>
+<dialog id="setupDialog"><div class="dialog-head"><div><p class="eyebrow">NEW WORDLE</p><h2>Set up the game.</h2></div><button data-close="setupDialog">Cancel</button></div>
+  <div class="setup-grid"><label>Game name<input id="title" maxlength="90"></label><label>Game format<select id="gameMode"><option value="day">Class-day competition</option><option value="single">Single game</option></select></label></div>
+  <div class="setup-grid"><label id="singlePeriodLabel" hidden>Class period<select id="singlePeriod"></select></label><label>Rules<select id="ruleMode"><option value="normal">Normal</option><option value="hard">Hard mode</option></select></label></div>
+  <div class="setup-grid"><label>Word source<select id="wordSource"><option value="random">Random word</option><option value="custom">Choose my own word</option></select></label><label id="rotationLabel">Class-day words<select id="rotation"><option value="different">Different word each class</option><option value="same">Same word for every class</option></select></label></div>
+  <label id="customLabel" hidden>Secret five-letter word<input id="customWord" type="password" maxlength="5" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="•••••"></label>
+  <div class="setup-note" id="setupNote">Different-word mode helps prevent one period from spoiling the answer for another.</div>
+  <button id="saveGame" class="primary">Create Wordle</button>
+</dialog>
+<dialog id="teacherDialog"><div class="dialog-head"><div><p class="eyebrow">TEACHER CONTROLS</p><h2>Game center</h2></div><button data-close="teacherDialog">Done</button></div><p class="subtle">Open this panel with the projector hidden. Secret answers are only revealed here when you choose to show them.</p>
+  <div class="teacher-actions"><button id="newGame">New game</button><button id="revealAnswer">Reveal current answer</button><button id="awardDay" class="primary">Award to Scoreboard</button></div><p id="answerReveal" class="answer-reveal"></p><p id="resultNote" class="subtle"></p>
+  <div class="table-wrap"><table><thead><tr><th>Period</th><th>Status</th><th>Guesses</th><th>Game Score</th><th>Include</th></tr></thead><tbody id="results"></tbody></table></div><p id="postedMessage"></p>
+</dialog>
+<script src="shared/dashboard-data.js"></script><script src="shared/competition-service.js"></script><script src="shared/game-competition-award.js"></script><script src="shared/wordle.js"></script><script src="shared/bell-service.js"></script><script src="shared/reminder-service.js"></script></body></html>
