@@ -9,7 +9,7 @@ const COMMON_ANSWERS=`
 about above abuse actor acute admit adopt adore adult after again agent agile agree ahead alarm album alert alien align alike alive allow alone along alter amber among angel anger angle angry apart apple apply arena argue arise array aside asset audio avoid awake award aware awful bacon badge badly baker basic basin beach beard beast begin being below bench berry birth black blade blame blank blast blend blind block blood bloom blown board boast bonus boost booth bound brain brake brand brave bread break brick bride brief bring broad broke brown brush build built buyer cabin cable camel candy carry carve catch cause chain chair chalk charm chart chase cheap check cheer chest chief child chill choir chose civic claim class clean clear clerk click climb clock close cloud coach coast could count court cover craft crash crazy cream crime crisp cross crowd crown curve daily dairy dance dealt death debut delay delta dense depth diary digit dirty doubt dozen draft drama dream dress dried drill drink drive drove eager early earth eight elect elite empty enemy enjoy enter entry equal error event every exact exist extra faith false fancy fault favor feast field fifth fifty fight final first flame flash fleet floor flour fluid focus force forth forty forum found frame frank fresh front fruit funny giant given glass globe glory grace grade grain grand grant grape graph grasp grass great green greet grief gross group grown guard guess guest guide habit happy heart heavy hence honey horse hotel house human ideal image imply index inner input issue ivory joint judge juice knife known label large later laugh layer learn least leave lemon light limit local loose lucky lunch magic major maker maple march match maybe mayor medal media mercy metal might minor model money month moral motor mount mouse mouth movie music nasty naval nerve never night noise north novel nurse occur ocean offer often order other ought paint panel paper party peace phase phone photo piece pilot pitch place plain plane plant plate point pound power press price pride prime print prior prize proof proud queen quick quiet quite radio raise range rapid ratio reach ready realm reply right river robot rough round route royal rural scale scene scope score sense serve seven shade shake shall shape share sharp sheet shelf shell shift shine shirt shock shoot short shown sight since skill sleep small smart smile solid solve sorry sound south space spare speak speed spend spice split sport staff stage stair stake stand start state steam steel stick still stock stone store storm story strip style sugar suite super sweet table taken taste teach thank their theme there thick thing think third those three throw tight times tired title today topic total touch tough tower track trade train treat trend trial tribe trick truck truly trust truth twice under union unity until upper urban usual vague valid value video visit vital voice waste watch water wheel where which while white whole woman world worry worth would write wrong young youth zebra
 `.trim().split(/\s+/);
 const ANSWERS=[...new Set(COMMON_ANSWERS.filter(w=>/^[a-z]{5}$/.test(w)))];
-let data={version:1,session:null},activePeriod='',currentInput='',dictionary=new Set(ANSWERS),dictionaryReady=false,blocked=false;
+let data={version:1,session:null},activePeriod='',currentInput='',pendingReveal=null,dictionary=new Set(ANSWERS),dictionaryReady=false,blocked=false;
 try{
   const raw=localStorage.getItem(KEY);
   if(raw){
@@ -59,7 +59,10 @@ function hardViolation(r,guess){
 }
 function currentPeriodRecord(){return session()?.periods.find(p=>p.id===activePeriod);}
 function renderBoard(){
-  const s=session(),r=round(),board=$('board');board.replaceChildren();
+  const s=session(),r=round(),board=$('board');
+  const revealRow=pendingReveal?.period===activePeriod?pendingReveal.row:-1;
+  pendingReveal=null;
+  board.replaceChildren();
   for(let rowIndex=0;rowIndex<6;rowIndex++){
     const submitted=r?.guesses[rowIndex];
     const live=!submitted&&r?.status==='playing'&&rowIndex===r.guesses.length?currentInput:'';
@@ -68,7 +71,10 @@ function renderBoard(){
       const letter=submitted?.[col]||live[col]||'';
       const tile=make('div',letter,'tile');
       if(letter&&!submitted)tile.classList.add('filled');
-      if(submitted){tile.classList.add(states[col],'reveal');tile.style.animationDelay=`${col*55}ms`;}
+      if(submitted){
+        tile.classList.add(states[col]);
+        if(rowIndex===revealRow){tile.classList.add('reveal');tile.style.animationDelay=`${col*55}ms`;}
+      }
       board.append(tile);
     }
   }
@@ -104,7 +110,7 @@ function submitGuess(){
   const s=session(),r=round();if(currentInput.length!==5){feedback('Enter five letters.','error');return;}
   const guess=currentInput.toLowerCase();if(dictionaryReady&&!dictionary.has(guess)&&guess!==r.answer){feedback('That word is not in the dictionary.','error');return;}
   if(s.ruleMode==='hard'&&r.guesses.length){const violation=hardViolation(r,guess);if(violation){feedback(violation,'error');return;}}
-  r.guesses.push(guess);currentInput='';if(guess===r.answer){r.status='finished';r.won=true;r.finishedAt=Date.now();feedback(`Solved in ${r.guesses.length}! ${roundScore(r)} game points.`,'success');}else if(r.guesses.length>=6){r.status='finished';r.won=false;r.finishedAt=Date.now();feedback(`The word was ${r.answer.toUpperCase()}. 0 game points.`,'error');}
+  r.guesses.push(guess);pendingReveal={period:activePeriod,row:r.guesses.length-1};currentInput='';if(guess===r.answer){r.status='finished';r.won=true;r.finishedAt=Date.now();feedback(`Solved in ${r.guesses.length}! ${roundScore(r)} game points.`,'success');}else if(r.guesses.length>=6){r.status='finished';r.won=false;r.finishedAt=Date.now();feedback(`The word was ${r.answer.toUpperCase()}. 0 game points.`,'error');}
   persist();render();
 }
 function syncSetup(){
