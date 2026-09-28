@@ -839,6 +839,30 @@
         now
       );
 
+    // Manual period selection must override Auto Detect even before school.
+    // This allows a later period to be selected and a warning to be armed
+    // before the first bell or during the opening passing period.
+    let entry = null;
+
+    if (state.manualEntryName) {
+      entry =
+        schedule.find(
+          item =>
+            item.name ===
+            state.manualEntryName
+        ) || null;
+
+      if (
+        entry &&
+        timeToday(
+          entry.end,
+          now
+        ) <= now
+      ) {
+        entry = null;
+      }
+    }
+
     // Before the first bell, count down to the first bell. Manual schedule
     // overrides still work here, including a manually chosen Late Start or
     // Minimum Day.
@@ -900,27 +924,6 @@
           state.scheduleMode === "auto" &&
           scheduleKey === "minimum"
       };
-    }
-
-    let entry = null;
-
-    if (state.manualEntryName) {
-      entry =
-        schedule.find(
-          item =>
-            item.name ===
-            state.manualEntryName
-        ) || null;
-
-      if (
-        entry &&
-        timeToday(
-          entry.end,
-          now
-        ) <= now
-      ) {
-        entry = null;
-      }
     }
 
     if (!entry) {
