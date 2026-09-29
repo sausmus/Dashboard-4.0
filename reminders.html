@@ -1059,6 +1059,13 @@
       return;
     }
 
+    if (status.state === "local-file") {
+      notificationStatus.textContent = "Web version required";
+      notificationToggleButton.disabled = true;
+      notificationHelp.textContent = "Desktop reminders must be enabled from the deployed HTTPS Teacher Dashboard, not from a downloaded HTML file. Open your live Dashboard site and enable them there.";
+      return;
+    }
+
     if (status.state === "insecure") {
       notificationStatus.textContent = "HTTPS required";
       notificationToggleButton.disabled = true;
