@@ -202,6 +202,122 @@
       display: none;
     }
 
+    .notification-setting {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .notification-setting-copy {
+      min-width: 0;
+    }
+
+    .notification-setting-copy strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 17px;
+    }
+
+    .notification-setting-copy p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .notification-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .notification-status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f1f3f4;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .notification-status.enabled {
+      background: #e6f4ea;
+      color: #137333;
+    }
+
+    .notification-status.blocked {
+      background: #fce8e6;
+      color: #b3261e;
+    }
+
+    .notification-help {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .notification-permission-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 31000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(32,33,36,.64);
+      backdrop-filter: blur(3px);
+    }
+
+    .notification-permission-backdrop.visible { display: flex; }
+
+    .notification-permission-dialog {
+      width: min(500px, 100%);
+      padding: 25px;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 18px 60px rgba(0,0,0,.30);
+      text-align: center;
+    }
+
+    .notification-permission-icon {
+      width: 58px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      background: #e8f0fe;
+      font-size: 28px;
+    }
+
+    .notification-permission-dialog h2 {
+      margin: 0 0 9px;
+      font-size: 23px;
+    }
+
+    .notification-permission-dialog p {
+      margin: 0 auto;
+      max-width: 410px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .notification-permission-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
     .section {
       background: var(--panel);
       padding: 22px;
@@ -644,6 +760,10 @@
       .reminder-card { grid-template-columns: 1fr; }
       .reminder-actions { justify-content: flex-start; }
       .button-row .button { flex: 1; }
+      .notification-setting { align-items: flex-start; flex-direction: column; }
+      .notification-controls { width: 100%; justify-content: space-between; }
+      .notification-permission-actions { flex-direction: column-reverse; }
+      .notification-permission-actions .button { width: 100%; }
     }
   </style>
 </head>
@@ -685,6 +805,21 @@
     </div>
     <div class="small-note">
       Auto follows Wednesday Late Start and the minimum-day dates saved in Dashboard Settings. An override here also changes Bell Countdown for today.
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">Desktop Notifications</div>
+    <div class="notification-setting">
+      <div class="notification-setting-copy">
+        <strong>See reminders while you work in another browser tab.</strong>
+        <p>When Teacher Dashboard is open, Chrome can show a desktop notification for a due reminder. Clicking it brings Teacher Dashboard back to the front.</p>
+        <div id="notificationHelp" class="notification-help"></div>
+      </div>
+      <div class="notification-controls">
+        <span id="notificationStatus" class="notification-status">Checking…</span>
+        <button id="notificationToggleButton" class="button secondary compact" type="button">Enable</button>
+      </div>
     </div>
   </section>
 
@@ -813,6 +948,18 @@
   </div>
 </main>
 
+<div id="notificationPermissionBackdrop" class="notification-permission-backdrop" role="dialog" aria-modal="true" aria-labelledby="notificationPermissionTitle">
+  <div class="notification-permission-dialog">
+    <div class="notification-permission-icon" aria-hidden="true">🔔</div>
+    <h2 id="notificationPermissionTitle">Enable Desktop Reminders?</h2>
+    <p>Allow Teacher Dashboard to show important class reminders while you’re working in another browser tab. Clicking a notification will bring Teacher Dashboard back to the front.</p>
+    <div class="notification-permission-actions">
+      <button id="notificationPermissionCancel" class="button secondary" type="button">Not Now</button>
+      <button id="notificationPermissionContinue" class="button primary" type="button">Continue</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast" aria-live="polite"></div>
 
 <script src="shared/dashboard-data.js"></script>
@@ -852,6 +999,12 @@
   const completedTodoActions = el("completedTodoActions");
   const clearCompletedTodosButton = el("clearCompletedTodosButton");
   const completedTodoList = el("completedTodoList");
+  const notificationStatus = el("notificationStatus");
+  const notificationHelp = el("notificationHelp");
+  const notificationToggleButton = el("notificationToggleButton");
+  const notificationPermissionBackdrop = el("notificationPermissionBackdrop");
+  const notificationPermissionCancel = el("notificationPermissionCancel");
+  const notificationPermissionContinue = el("notificationPermissionContinue");
 
   let selectedStudentId = "";
   let selectedStudentClassId = "";
@@ -864,6 +1017,103 @@
     toast.classList.add("show");
     clearTimeout(showToast.timer);
     showToast.timer = setTimeout(() => toast.classList.remove("show"), 1900);
+  }
+
+  function closeNotificationPermissionDialog() {
+    notificationPermissionBackdrop.classList.remove("visible");
+  }
+
+  function openNotificationPermissionDialog() {
+    notificationPermissionBackdrop.classList.add("visible");
+    notificationPermissionContinue.focus();
+  }
+
+  function renderNotificationSetting() {
+    const status = ReminderService.getDesktopNotificationStatus();
+    notificationStatus.className = "notification-status";
+    notificationToggleButton.disabled = false;
+
+    if (status.state === "enabled") {
+      notificationStatus.textContent = "Enabled";
+      notificationStatus.classList.add("enabled");
+      notificationToggleButton.textContent = "Turn Off";
+      notificationHelp.textContent = "Desktop notifications appear only when Teacher Dashboard is open but not currently visible.";
+      return;
+    }
+
+    notificationToggleButton.textContent = "Enable";
+
+    if (status.state === "blocked") {
+      notificationStatus.textContent = "Blocked";
+      notificationStatus.classList.add("blocked");
+      notificationToggleButton.textContent = "Blocked in Chrome";
+      notificationToggleButton.disabled = true;
+      notificationHelp.textContent = "Chrome is blocking notifications for this site. Use the site controls next to the address bar to allow notifications, then reload Teacher Dashboard.";
+      return;
+    }
+
+    if (status.state === "unsupported") {
+      notificationStatus.textContent = "Unavailable";
+      notificationToggleButton.disabled = true;
+      notificationHelp.textContent = "This browser does not support desktop notifications.";
+      return;
+    }
+
+    if (status.state === "insecure") {
+      notificationStatus.textContent = "HTTPS required";
+      notificationToggleButton.disabled = true;
+      notificationHelp.textContent = "Desktop notifications require the secure HTTPS version of Teacher Dashboard.";
+      return;
+    }
+
+    if (status.permission === "granted") {
+      notificationStatus.textContent = "Off";
+      notificationHelp.textContent = "Chrome already has permission. Enable this whenever you want reminders to appear outside the Dashboard tab.";
+    } else {
+      notificationStatus.textContent = "Off";
+      notificationHelp.textContent = "Chrome will ask for notification permission only after you choose to enable this feature.";
+    }
+  }
+
+  async function enableDesktopNotifications() {
+    try {
+      const status = await ReminderService.requestDesktopNotifications();
+      renderNotificationSetting();
+
+      if (status.state === "enabled") {
+        showToast("Desktop reminders enabled");
+      } else if (status.state === "blocked") {
+        showToast("Notifications were blocked in Chrome");
+      } else {
+        showToast("Desktop reminders were not enabled");
+      }
+    } catch (error) {
+      console.error(error);
+      renderNotificationSetting();
+      showToast("Desktop reminders could not be enabled");
+    }
+  }
+
+  function handleNotificationToggle() {
+    const status = ReminderService.getDesktopNotificationStatus();
+
+    if (status.state === "enabled") {
+      ReminderService.setDesktopNotificationsEnabled(false);
+      renderNotificationSetting();
+      showToast("Desktop reminders turned off");
+      return;
+    }
+
+    if (status.permission === "granted") {
+      ReminderService.setDesktopNotificationsEnabled(true);
+      renderNotificationSetting();
+      showToast("Desktop reminders enabled");
+      return;
+    }
+
+    if (status.state === "needs-permission") {
+      openNotificationPermissionDialog();
+    }
   }
 
   function defaultReminderDate() {
@@ -1263,7 +1513,48 @@
     if (reminders.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
-      empty.innerHTML = "<strong>No reminders yet.</strong><br>Create one above and it will alert you while any Teacher Dashboard page is open.";
+
+      const pastCount = allReminders.filter(item => item.date < ReminderService.dateKey()).length;
+      const recoveryCandidates = typeof ReminderService.getReminderRecoveryCandidates === "function"
+        ? ReminderService.getReminderRecoveryCandidates()
+        : [];
+
+      if (pastCount > 0) {
+        empty.innerHTML = `<strong>No upcoming reminders.</strong><br>${pastCount} older reminder${pastCount === 1 ? " is" : "s are"} still stored but hidden because the date has passed.`;
+      } else {
+        empty.innerHTML = "<strong>No reminders yet.</strong><br>Create one above and it will alert you while any Teacher Dashboard page is open.";
+      }
+
+      if (recoveryCandidates.length && allReminders.length === 0) {
+        const recovery = recoveryCandidates[0];
+        const recoveryWrap = document.createElement("div");
+        recoveryWrap.style.marginTop = "14px";
+
+        const recoveryNote = document.createElement("div");
+        recoveryNote.textContent = `${recovery.label} found (${recovery.count} reminder${recovery.count === 1 ? "" : "s"}).`;
+        recoveryNote.style.marginBottom = "9px";
+
+        const restore = document.createElement("button");
+        restore.type = "button";
+        restore.className = "button secondary compact";
+        restore.textContent = "Restore Reminder Backup";
+        restore.addEventListener("click", () => {
+          const confirmed = confirm(`Restore ${recovery.count} reminder${recovery.count === 1 ? "" : "s"} from ${recovery.label.toLowerCase()}?`);
+          if (!confirmed) return;
+          try {
+            ReminderService.restoreReminderBackup(recovery.source);
+            renderReminders();
+            showToast("Reminder backup restored");
+          } catch (error) {
+            console.error(error);
+            showToast(error.message || "Reminder backup could not be restored");
+          }
+        });
+
+        recoveryWrap.append(recoveryNote, restore);
+        empty.appendChild(recoveryWrap);
+      }
+
       reminderList.appendChild(empty);
       return;
     }
@@ -1510,6 +1801,15 @@
   todoListViewButton.addEventListener("click", () => setView("todo"));
   addTodoButton.addEventListener("click", addTodo);
   clearCompletedTodosButton.addEventListener("click", clearCompletedTodos);
+  notificationToggleButton.addEventListener("click", handleNotificationToggle);
+  notificationPermissionCancel.addEventListener("click", closeNotificationPermissionDialog);
+  notificationPermissionContinue.addEventListener("click", async () => {
+    closeNotificationPermissionDialog();
+    await enableDesktopNotifications();
+  });
+  notificationPermissionBackdrop.addEventListener("click", event => {
+    if (event.target === notificationPermissionBackdrop) closeNotificationPermissionDialog();
+  });
   todoInput.addEventListener("keydown", event => {
     if (event.key === "Enter" && !event.isComposing) {
       event.preventDefault();
@@ -1583,6 +1883,7 @@
 
   window.addEventListener(ReminderService.changeEvent, renderReminders);
   window.addEventListener(ReminderService.todoChangeEvent, renderTodos);
+  window.addEventListener(ReminderService.notificationChangeEvent, renderNotificationSetting);
   window.addEventListener(DashboardData.changeEvent, () => {
     buildPeriods();
     renderSuggestions();
@@ -1600,6 +1901,7 @@
   updateTimingPreview();
   renderReminders();
   renderTodos();
+  renderNotificationSetting();
 })();
 </script>
 </body>

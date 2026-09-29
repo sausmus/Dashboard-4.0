@@ -881,6 +881,58 @@
       line-height: 1.6;
     }
 
+    .data-backup-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin: 16px 0 18px;
+    }
+
+    .data-backup-stat {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fafafa;
+    }
+
+    .data-backup-stat strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 18px;
+    }
+
+    .data-backup-stat span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .data-backup-note {
+      margin: 0 0 18px;
+      padding: 14px 16px;
+      border: 1px solid #c9daf8;
+      border-radius: 12px;
+      background: #f5f9ff;
+      color: #3c4043;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .data-backup-note strong {
+      color: var(--text);
+    }
+
+    .data-backup-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .data-backup-file {
+      display: none;
+    }
+
     .dashboard-footer {
       margin-top: 24px;
       text-align: center;
@@ -1344,6 +1396,11 @@
         <span id="hubCalendarSummary" class="settings-hub-summary">Manage minimum-day dates.</span>
         <span class="settings-hub-action">Manage →</span>
       </button>
+      <button class="settings-hub-card" type="button" data-settings-section="data">
+        <span class="settings-hub-title"><span class="settings-hub-icon">💾</span>Data Backup & Restore</span>
+        <span id="hubDataSummary" class="settings-hub-summary">Back up every saved Dashboard data entry on this browser.</span>
+        <span class="settings-hub-action">Manage →</span>
+      </button>
       <button class="settings-hub-card" type="button" data-settings-section="schoolyear">
         <span class="settings-hub-title"><span class="settings-hub-icon">↻</span>School Year</span>
         <span id="hubSchoolYearSummary" class="settings-hub-summary">Reset or restore school-year data.</span>
@@ -1685,6 +1742,44 @@
       <div id="calendarStatus" class="status" aria-live="polite"></div>
     </section>
 
+    <section class="panel settings-detail-panel" id="dataBackupPanel" data-settings-group="data">
+      <div class="section-header">
+        <div>
+          <h2>Device Data Backup & Restore</h2>
+          <p>
+            Create a portable backup of every persistent Teacher Dashboard data entry stored by this browser on this device.
+          </p>
+        </div>
+      </div>
+
+      <div class="data-backup-note">
+        <strong>Everything in localStorage is included automatically.</strong> That means Participation and Timeliness records, rosters, Scoreboard data, reminders, games, settings, Google Classroom mappings, and any future Dashboard data keys are captured without relying on a hard-coded list. Creating a backup does not change any saved data.
+      </div>
+
+      <div class="data-backup-summary">
+        <div class="data-backup-stat">
+          <strong id="dataBackupEntryCount">—</strong>
+          <span>localStorage entries currently saved on this browser/device</span>
+        </div>
+        <div class="data-backup-stat">
+          <strong id="dataBackupSize">—</strong>
+          <span>approximate backup file size</span>
+        </div>
+      </div>
+
+      <div class="data-backup-note">
+        <strong>Restore is data-preserving.</strong> It restores every key contained in the backup but never clears unrelated keys already on the device. Before applying a restore, the Dashboard automatically downloads a second safety backup of the device's current data. If a browser storage write fails, the restore is rolled back.
+      </div>
+
+      <div class="data-backup-actions">
+        <button id="downloadDataBackupButton" class="button primary" type="button">Download Full Backup</button>
+        <button id="chooseDataRestoreButton" class="button secondary" type="button">Restore from Backup</button>
+        <input id="dataRestoreFileInput" class="data-backup-file" type="file" accept="application/json,.json">
+      </div>
+
+      <div id="dataBackupStatus" class="status" aria-live="polite"></div>
+    </section>
+
     <section class="panel settings-detail-panel" id="schoolYearPanel" data-settings-group="schoolyear">
       <div class="section-header">
         <div>
@@ -1831,6 +1926,7 @@
   <script src="shared/classroom-service.js"></script>
   <script src="shared/bell-service.js"></script>
   <script src="shared/reminder-service.js"></script>
+  <script src="shared/data-backup-service.js"></script>
   <script>
     (() => {
       "use strict";
@@ -1844,6 +1940,12 @@
       const classesStatus = document.getElementById("classesStatus");
       const rosterStatus = document.getElementById("rosterStatus");
       const resetStatus = document.getElementById("resetStatus");
+      const dataBackupStatus = document.getElementById("dataBackupStatus");
+      const dataBackupEntryCount = document.getElementById("dataBackupEntryCount");
+      const dataBackupSize = document.getElementById("dataBackupSize");
+      const downloadDataBackupButton = document.getElementById("downloadDataBackupButton");
+      const chooseDataRestoreButton = document.getElementById("chooseDataRestoreButton");
+      const dataRestoreFileInput = document.getElementById("dataRestoreFileInput");
 
       const saveRosterButton = document.getElementById("saveRosterButton");
       const minimumDayDate = document.getElementById("minimumDayDate");
@@ -1931,6 +2033,7 @@
       const hubClassesSummary = document.getElementById("hubClassesSummary");
       const hubParticipationSummary = document.getElementById("hubParticipationSummary");
       const hubCalendarSummary = document.getElementById("hubCalendarSummary");
+      const hubDataSummary = document.getElementById("hubDataSummary");
       const hubSchoolYearSummary = document.getElementById("hubSchoolYearSummary");
       const gradeOverviewAssignments = document.getElementById("gradeOverviewAssignments");
       const gradeOverviewLastSync = document.getElementById("gradeOverviewLastSync");
@@ -1964,6 +2067,7 @@
         classes: "Classes & Rosters",
         participation: "Participation & Timeliness",
         calendar: "School Calendar",
+        data: "Data Backup & Restore",
         schoolyear: "School Year"
       };
 
@@ -2030,6 +2134,8 @@
 
         const minimumDays = DashboardData.getMinimumDayDates();
         hubCalendarSummary.textContent = `${minimumDays.length} minimum day${minimumDays.length === 1 ? "" : "s"} saved`;
+        const deviceSummary = DashboardBackup.getDeviceSummary();
+        hubDataSummary.textContent = `${deviceSummary.entryCount} saved entr${deviceSummary.entryCount === 1 ? "y" : "ies"} · full-device backup available`;
         hubSchoolYearSummary.textContent = DashboardData.canUndoNewSchoolYearReset()
           ? "Reset tools · backup available to restore"
           : "Reset and restore school-year data";
@@ -4012,6 +4118,66 @@
         }
       }
 
+      function formatBackupSize(bytes) {
+        const value = Number(bytes) || 0;
+        if (value < 1024) return `${value} B`;
+        if (value < 1024 * 1024) return `${(value / 1024).toFixed(value < 10240 ? 1 : 0)} KB`;
+        return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+      }
+
+      function refreshDataBackupSummary() {
+        const summary = DashboardBackup.getDeviceSummary();
+        dataBackupEntryCount.textContent = String(summary.entryCount);
+        dataBackupSize.textContent = formatBackupSize(summary.bytes);
+        if (hubDataSummary) {
+          hubDataSummary.textContent = `${summary.entryCount} saved entr${summary.entryCount === 1 ? "y" : "ies"} · full-device backup available`;
+        }
+      }
+
+      function downloadFullDataBackup() {
+        try {
+          const snapshot = DashboardBackup.createSnapshot();
+          const filename = DashboardBackup.downloadSnapshot(snapshot);
+          refreshDataBackupSummary();
+          showStatus(dataBackupStatus, `Full Dashboard backup downloaded: ${filename}`);
+        } catch (error) {
+          console.error(error);
+          showStatus(dataBackupStatus, error.message || "Dashboard backup could not be created.", true);
+        }
+      }
+
+      async function restoreFullDataBackup(file) {
+        try {
+          const backup = await DashboardBackup.readBackupFile(file);
+          const currentOrigin = window.location.origin || "";
+          const originWarning = backup.origin && currentOrigin && backup.origin !== currentOrigin
+            ? `\n\nThis backup was created on ${backup.origin}, while this Dashboard is running on ${currentOrigin}.`
+            : "";
+          const createdLabel = backup.createdAt ? new Date(backup.createdAt).toLocaleString() : "an unknown date";
+          const confirmed = window.confirm(
+            `Restore ${backup.entryCount} saved data entries from a backup created ${createdLabel}?${originWarning}\n\nExisting localStorage will NOT be cleared. Keys in the backup will be restored, and any unrelated keys already on this device will be preserved. A safety backup of the device's current data will download first.`
+          );
+          if (!confirmed) return;
+
+          const safetySnapshot = DashboardBackup.createSnapshot();
+          DashboardBackup.downloadSnapshot(safetySnapshot, { prefix: "teacher-dashboard-pre-restore-safety-backup" });
+          const result = DashboardBackup.restoreSnapshot(backup);
+          refreshDataBackupSummary();
+          updateSettingsHubSummaries();
+          showStatus(dataBackupStatus, `${result.restoredKeys} saved data entries restored. Current-device safety backup downloaded first.`);
+
+          window.setTimeout(() => {
+            window.alert("Dashboard data restored successfully. This page will reload so every tool reads the restored data.");
+            window.location.reload();
+          }, 150);
+        } catch (error) {
+          console.error(error);
+          showStatus(dataBackupStatus, error.message || "Dashboard backup could not be restored.", true);
+        } finally {
+          dataRestoreFileInput.value = "";
+        }
+      }
+
       function refreshAllSettingsUI(preferredRosterId = "1") {
         renderMinimumDays();
         renderClassroomMappings();
@@ -4020,6 +4186,7 @@
         if (ClassroomService.isConnected()) loadGradeSyncTopics().catch(console.error);
         undoSchoolYearResetButton.disabled =
           !DashboardData.canUndoNewSchoolYearReset();
+        refreshDataBackupSummary();
         updateSettingsHubSummaries();
       }
 
@@ -4150,6 +4317,13 @@
         }
       });
 
+      downloadDataBackupButton.addEventListener("click", downloadFullDataBackup);
+      chooseDataRestoreButton.addEventListener("click", () => dataRestoreFileInput.click());
+      dataRestoreFileInput.addEventListener("change", () => {
+        const file = dataRestoreFileInput.files && dataRestoreFileInput.files[0];
+        if (file) restoreFullDataBackup(file);
+      });
+
       addMinimumDayButton.addEventListener("click", addMinimumDay);
       newSchoolYearResetButton.addEventListener("click", newSchoolYearReset);
       undoSchoolYearResetButton.addEventListener("click", undoSchoolYearReset);
@@ -4166,6 +4340,7 @@
         participationGradeSyncPanel: "participation",
         timelinessGradeSyncPanel: "participation",
         calendarPanel: "calendar",
+        dataBackupPanel: "data",
         schoolYearPanel: "schoolyear"
       }[initialHash];
       if (hashSection) {

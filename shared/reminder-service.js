@@ -15,11 +15,16 @@
   const CHANGE_EVENT = "teacher-dashboard-reminders-changed";
   const TODO_STORAGE_KEY = "teacherDashboard.todos.v1";
   const TODO_CHANGE_EVENT = "teacher-dashboard-todos-changed";
+  const NOTIFICATION_SETTINGS_KEY = "teacherDashboard.reminderNotifications.v1";
+  const NOTIFICATION_CHANGE_EVENT = "teacher-dashboard-reminder-notifications-changed";
+  const REMINDER_BACKUP_KEY = "teacherDashboard.classReminders.backup.v1";
+  const SCHOOL_YEAR_BACKUP_KEY = "teacherDashboard.schoolYearResetBackup.v1";
   const BELL_STATE_KEY = "teacherDashboard.bellState.v1";
   const PASSING_MINUTES = 4;
   const START_OF_DAY_PASSING_MINUTES = 5;
   const INSTANCE_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
   const CLAIM_MS = 15000;
+  const NOTIFICATION_CLAIM_MS = 120000;
   const POLL_MS = 1000;
 
   const VALID_TIMINGS = new Set([
@@ -38,6 +43,8 @@
   });
 
   let activeReminderId = "";
+  let activeDesktopNotification = null;
+  let activeDesktopNotificationReminderId = "";
   let audioContext = null;
   let checkTimer = null;
 
@@ -396,28 +403,132 @@
     return next;
   }
 
-  function readRawState() {
+  function parseStoredReminders(rawText) {
+    if (!rawText) return [];
+
     try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      const parsed = JSON.parse(rawText);
       const reminders = Array.isArray(parsed)
         ? parsed
-        : Array.isArray(parsed.reminders)
+        : Array.isArray(parsed?.reminders)
           ? parsed.reminders
           : [];
 
       return reminders.map(normalizeReminder);
     } catch (error) {
-      console.warn("ReminderService could not load reminders.", error);
+      console.warn("ReminderService could not parse stored reminders.", error);
       return [];
     }
+  }
+
+  function readRawState() {
+    return parseStoredReminders(localStorage.getItem(STORAGE_KEY));
+  }
+
+  function saveReminderSafetyCopy(rawText, reason = "pre-write") {
+    if (!rawText) return false;
+
+    const reminders = parseStoredReminders(rawText);
+    if (!reminders.length) return false;
+
+    try {
+      localStorage.setItem(
+        REMINDER_BACKUP_KEY,
+        JSON.stringify({
+          version: 1,
+          savedAt: new Date().toISOString(),
+          reason,
+          rawPayload: rawText,
+          reminders
+        })
+      );
+      return true;
+    } catch (error) {
+      console.warn("ReminderService could not save its reminder safety copy.", error);
+      return false;
+    }
+  }
+
+  function readShadowBackup() {
+    try {
+      const raw = localStorage.getItem(REMINDER_BACKUP_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const payload = typeof parsed?.rawPayload === "string"
+        ? parsed.rawPayload
+        : JSON.stringify({ reminders: parsed?.reminders || [] });
+      const reminders = parseStoredReminders(payload);
+      if (!reminders.length) return null;
+      return {
+        source: "shadow",
+        label: "Automatic reminder safety copy",
+        savedAt: String(parsed?.savedAt || ""),
+        reminders
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function readSchoolYearBackup() {
+    try {
+      const raw = localStorage.getItem(SCHOOL_YEAR_BACKUP_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const reminderPayload = parsed?.appStorage?.reminders;
+      if (typeof reminderPayload !== "string" || !reminderPayload) return null;
+      const reminders = parseStoredReminders(reminderPayload);
+      if (!reminders.length) return null;
+      return {
+        source: "school-year",
+        label: "School-year reset backup",
+        savedAt: String(parsed?.createdAt || ""),
+        reminders
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function getReminderRecoveryCandidates() {
+    const candidates = [readShadowBackup(), readSchoolYearBackup()]
+      .filter(Boolean)
+      .map(candidate => ({
+        source: candidate.source,
+        label: candidate.label,
+        savedAt: candidate.savedAt,
+        count: candidate.reminders.length
+      }));
+
+    return clone(candidates);
+  }
+
+  function restoreReminderBackup(source = "shadow") {
+    const candidate = source === "school-year"
+      ? readSchoolYearBackup()
+      : readShadowBackup();
+
+    if (!candidate?.reminders?.length) {
+      throw new Error("No reminder backup is available to restore.");
+    }
+
+    return writeReminders(
+      candidate.reminders,
+      { type: "reminder-backup-restored", source: candidate.source },
+      { dispatch: true, skipSafetyCopy: true }
+    );
   }
 
   function samePersistedReminder(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
   }
 
-  function writeReminders(reminders, detail = {}, { dispatch = true } = {}) {
+  function writeReminders(reminders, detail = {}, { dispatch = true, skipSafetyCopy = false } = {}) {
     const normalized = reminders.map(normalizeReminder);
+
+    if (!skipSafetyCopy) {
+      saveReminderSafetyCopy(localStorage.getItem(STORAGE_KEY));
+    }
 
     localStorage.setItem(
       STORAGE_KEY,
@@ -676,6 +787,203 @@
     return completed;
   }
 
+  function notificationApiSupported() {
+    return typeof window.Notification !== "undefined";
+  }
+
+  function readNotificationPreference() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(NOTIFICATION_SETTINGS_KEY) || "{}");
+      return parsed?.enabled === true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function writeNotificationPreference(enabled) {
+    const next = { enabled: enabled === true };
+    localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent(NOTIFICATION_CHANGE_EVENT, {
+      detail: getDesktopNotificationStatus()
+    }));
+    return getDesktopNotificationStatus();
+  }
+
+  function getDesktopNotificationStatus() {
+    const apiSupported = notificationApiSupported();
+    const secure = window.isSecureContext === true;
+    const permission = apiSupported ? Notification.permission : "unsupported";
+    const preferenceEnabled = readNotificationPreference();
+    const enabled = apiSupported && secure && permission === "granted" && preferenceEnabled;
+
+    let state = "disabled";
+    if (!apiSupported) state = "unsupported";
+    else if (!secure) state = "insecure";
+    else if (permission === "denied") state = "blocked";
+    else if (enabled) state = "enabled";
+    else if (permission === "granted") state = "disabled";
+    else state = "needs-permission";
+
+    return {
+      supported: apiSupported && secure,
+      apiSupported,
+      secure,
+      permission,
+      preferenceEnabled,
+      enabled,
+      state
+    };
+  }
+
+  async function requestDesktopNotifications() {
+    if (!notificationApiSupported() || window.isSecureContext !== true) {
+      return getDesktopNotificationStatus();
+    }
+
+    let permission = Notification.permission;
+    if (permission === "default") {
+      permission = await Notification.requestPermission();
+    }
+
+    if (permission === "granted") {
+      return writeNotificationPreference(true);
+    }
+
+    writeNotificationPreference(false);
+    return getDesktopNotificationStatus();
+  }
+
+  function closeDesktopNotification({ release = false } = {}) {
+    const reminderId = activeDesktopNotificationReminderId;
+
+    if (activeDesktopNotification) {
+      try { activeDesktopNotification.close(); } catch (error) {}
+      activeDesktopNotification = null;
+    }
+
+    activeDesktopNotificationReminderId = "";
+    if (release && reminderId) releaseClaim(reminderId);
+  }
+
+  function setDesktopNotificationsEnabled(enabled) {
+    if (enabled === true) {
+      const status = getDesktopNotificationStatus();
+      if (status.permission !== "granted" || !status.supported) return status;
+      return writeNotificationPreference(true);
+    }
+
+    closeDesktopNotification({ release: true });
+    return writeNotificationPreference(false);
+  }
+
+  function desktopNotificationsEnabled() {
+    return getDesktopNotificationStatus().enabled;
+  }
+
+  function desktopNotificationCopy(reminder) {
+    const context = `${reminder.className} • ${reminder.triggerLabel}`;
+
+    if (reminder.privacy === "private") {
+      return {
+        title: "Teacher Dashboard Reminder",
+        body: `${context}\nPrivate reminder — click to view it in Teacher Dashboard.`
+      };
+    }
+
+    const subject = reminder.studentName ? `${reminder.studentName}: ` : "";
+    return {
+      title: "Teacher Dashboard Reminder",
+      body: `${context}\n${subject}${reminder.text}`
+    };
+  }
+
+  function showDesktopNotification(reminder) {
+    if (!desktopNotificationsEnabled()) return false;
+
+    try {
+      if (activeDesktopNotification) {
+        try { activeDesktopNotification.close(); } catch (error) {}
+      }
+
+      const copy = desktopNotificationCopy(reminder);
+      const notification = new Notification(copy.title, {
+        body: copy.body,
+        icon: new URL("bjh-logo.png", document.baseURI).href,
+        tag: `teacher-dashboard-reminder-${reminder.id}`
+      });
+
+      activeDesktopNotification = notification;
+      activeDesktopNotificationReminderId = reminder.id;
+
+      notification.onclick = () => {
+        // Notification clicks count as a user gesture, so Chrome can bring this
+        // Dashboard tab/window forward. The normal reminder card opens as soon
+        // as the page becomes visible again.
+        try { window.focus(); } catch (error) {}
+        try { notification.close(); } catch (error) {}
+        if (activeDesktopNotification === notification) activeDesktopNotification = null;
+        setTimeout(checkDueReminders, 0);
+      };
+
+      notification.onclose = () => {
+        if (activeDesktopNotification === notification) {
+          activeDesktopNotification = null;
+        }
+        // Keep the reminder id/claim alive while this Dashboard page remains
+        // in the background. That prevents duplicate OS notifications from
+        // multiple open Dashboard tabs. Returning to the Dashboard still opens
+        // the full reminder card.
+      };
+
+      return true;
+    } catch (error) {
+      console.warn("ReminderService could not show a desktop notification.", error);
+      activeDesktopNotification = null;
+      activeDesktopNotificationReminderId = "";
+      return false;
+    }
+  }
+
+  function promoteDesktopNotificationToAlert() {
+    if (!activeDesktopNotificationReminderId) return false;
+
+    const reminderId = activeDesktopNotificationReminderId;
+    const reminder = getReminder(reminderId);
+
+    if (!reminder || ["done", "missed"].includes(reminder.status)) {
+      closeDesktopNotification({ release: true });
+      return false;
+    }
+
+    if (
+      reminder.claimOwner &&
+      reminder.claimOwner !== INSTANCE_ID &&
+      reminder.claimUntil > Date.now()
+    ) {
+      closeDesktopNotification({ release: false });
+      return false;
+    }
+
+    if (activeDesktopNotification) {
+      try { activeDesktopNotification.close(); } catch (error) {}
+      activeDesktopNotification = null;
+    }
+    activeDesktopNotificationReminderId = "";
+
+    const claimed = claimReminder(reminderId, CLAIM_MS);
+    if (!claimed) return false;
+
+    const updated = updateReminder(reminderId, {
+      status: "alerting",
+      alertedDueAt: claimed.alertedDueAt || effectiveDue(claimed) || Date.now(),
+      claimOwner: INSTANCE_ID,
+      claimUntil: Date.now() + CLAIM_MS
+    }) || claimed;
+
+    openAlert(updated);
+    return true;
+  }
+
   function effectiveDue(reminder) {
     if (reminder.status === "snoozed" && reminder.snoozeUntil > 0) {
       return reminder.snoozeUntil;
@@ -683,7 +991,7 @@
     return reminder.triggerAt;
   }
 
-  function claimReminder(id) {
+  function claimReminder(id, durationMs = CLAIM_MS, force = false) {
     const now = Date.now();
     const reminders = readRawState();
     const index = reminders.findIndex(item => item.id === String(id));
@@ -693,13 +1001,14 @@
     if (
       reminder.claimOwner &&
       reminder.claimOwner !== INSTANCE_ID &&
-      reminder.claimUntil > now
+      reminder.claimUntil > now &&
+      !force
     ) {
       return null;
     }
 
     reminder.claimOwner = INSTANCE_ID;
-    reminder.claimUntil = now + CLAIM_MS;
+    reminder.claimUntil = now + Math.max(CLAIM_MS, Number(durationMs) || CLAIM_MS);
     reminders[index] = reminder;
     writeReminders(reminders, { type: "reminder-claimed", reminderId: reminder.id }, { dispatch: false });
     return clone(reminder);
@@ -1094,29 +1403,113 @@
   function checkDueReminders() {
     if (!document.body) return;
 
-    // When several Teacher Dashboard pages are open, only a visible page
-    // should claim a due reminder. This prevents a background tab from
-    // "stealing" the alert from the page the teacher is actually viewing.
-    if (document.visibilityState === "hidden") return;
+    const isVisible = document.visibilityState !== "hidden";
 
-    injectAlertUI();
+    if (isVisible) {
+      injectAlertUI();
 
-    const backdrop = document.getElementById("tdReminderBackdrop");
-    if (backdrop?.classList.contains("visible")) {
-      // Renew the cross-tab claim while this tab owns the visible alert. If a
-      // different visible Dashboard tab has taken ownership, dismiss this
-      // stale copy so the teacher only sees the reminder in the active tab.
-      const active = currentAlertReminder();
+      // If this page created a desktop notification while it was in the
+      // background, returning to it (or clicking the notification) promotes
+      // that same reminder into the normal in-Dashboard reminder card.
+      if (promoteDesktopNotificationToAlert()) return;
+
+      const backdrop = document.getElementById("tdReminderBackdrop");
+      if (backdrop?.classList.contains("visible")) {
+        // Renew the cross-tab claim while this tab owns the visible alert. If a
+        // different visible Dashboard tab has taken ownership, dismiss this
+        // stale copy so the teacher only sees the reminder in the active tab.
+        const active = currentAlertReminder();
+        if (
+          !active ||
+          ["done", "missed"].includes(active.status) ||
+          (active.claimOwner && active.claimOwner !== INSTANCE_ID && active.claimUntil > Date.now())
+        ) {
+          closeAlert();
+          return;
+        }
+        if (active.claimOwner === INSTANCE_ID && active.claimUntil - Date.now() < CLAIM_MS / 2) {
+          claimReminder(active.id);
+        }
+        return;
+      }
+
+      // A hidden Dashboard tab may currently own the reminder because it sent
+      // the desktop notification. If the teacher comes back to a different
+      // Dashboard tab, the focused tab should take over immediately and show
+      // the full reminder card rather than waiting for the background claim to
+      // expire.
+      if (typeof document.hasFocus !== "function" || document.hasFocus()) {
+        const now = Date.now();
+        const focusedClaim = getReminders()
+          .filter(item => {
+            if (item.scheduleUnavailable) return false;
+            if (item.status !== "alerting") return false;
+            if (item.date !== dateKey(new Date(now))) return false;
+            const dueAt = effectiveDue(item);
+            if (!dueAt || dueAt > now) return false;
+            return item.claimOwner && item.claimOwner !== INSTANCE_ID && item.claimUntil > now;
+          })
+          .sort((a, b) => effectiveDue(a) - effectiveDue(b))[0];
+
+        if (focusedClaim) {
+          const claimed = claimReminder(focusedClaim.id, CLAIM_MS, true);
+          if (claimed) {
+            const updated = updateReminder(claimed.id, {
+              status: "alerting",
+              alertedDueAt: claimed.alertedDueAt || effectiveDue(claimed) || now,
+              claimOwner: INSTANCE_ID,
+              claimUntil: now + CLAIM_MS
+            }) || claimed;
+            openAlert(updated);
+            return;
+          }
+        }
+      }
+
+      const due = dueReminders();
+      if (!due.length) return;
+
+      for (const candidate of due) {
+        const claimed = claimReminder(candidate.id);
+        if (!claimed) continue;
+
+        const now = Date.now();
+        const effective = effectiveDue(claimed);
+        const updated = updateReminder(claimed.id, {
+          status: "alerting",
+          alertedDueAt: effective || now,
+          claimOwner: INSTANCE_ID,
+          claimUntil: now + CLAIM_MS
+        }) || claimed;
+
+        openAlert(updated);
+        break;
+      }
+      return;
+    }
+
+    // When Teacher Dashboard is open but the teacher is working in another
+    // browser tab, a hidden Dashboard page may claim one due reminder and show
+    // the OS/Chrome notification. If notifications are off, the reminder waits
+    // untouched until a Dashboard page becomes visible again.
+    if (!desktopNotificationsEnabled()) return;
+
+    if (activeDesktopNotificationReminderId) {
+      const active = getReminder(activeDesktopNotificationReminderId);
       if (
         !active ||
         ["done", "missed"].includes(active.status) ||
         (active.claimOwner && active.claimOwner !== INSTANCE_ID && active.claimUntil > Date.now())
       ) {
-        closeAlert();
+        closeDesktopNotification({ release: false });
         return;
       }
-      if (active.claimOwner === INSTANCE_ID && active.claimUntil - Date.now() < CLAIM_MS / 2) {
-        claimReminder(active.id);
+
+      if (
+        active.claimOwner === INSTANCE_ID &&
+        active.claimUntil - Date.now() < NOTIFICATION_CLAIM_MS / 2
+      ) {
+        claimReminder(active.id, NOTIFICATION_CLAIM_MS);
       }
       return;
     }
@@ -1125,7 +1518,7 @@
     if (!due.length) return;
 
     for (const candidate of due) {
-      const claimed = claimReminder(candidate.id);
+      const claimed = claimReminder(candidate.id, NOTIFICATION_CLAIM_MS);
       if (!claimed) continue;
 
       const now = Date.now();
@@ -1134,10 +1527,15 @@
         status: "alerting",
         alertedDueAt: effective || now,
         claimOwner: INSTANCE_ID,
-        claimUntil: now + CLAIM_MS
+        claimUntil: now + NOTIFICATION_CLAIM_MS
       }) || claimed;
 
-      openAlert(updated);
+      if (!showDesktopNotification(updated)) {
+        // Do not swallow the reminder if the browser unexpectedly refuses to
+        // display a notification. Releasing the claim lets it surface normally
+        // when a Dashboard page becomes visible.
+        releaseClaim(updated.id);
+      }
       break;
     }
   }
@@ -1161,6 +1559,17 @@
           todos: getTodos()
         }
       }));
+      return;
+    }
+
+    if (event.key === NOTIFICATION_SETTINGS_KEY) {
+      if (!desktopNotificationsEnabled()) {
+        closeDesktopNotification({ release: true });
+      }
+      window.dispatchEvent(new CustomEvent(NOTIFICATION_CHANGE_EVENT, {
+        detail: getDesktopNotificationStatus()
+      }));
+      setTimeout(checkDueReminders, 0);
     }
   }
 
@@ -1190,10 +1599,9 @@
 
   window.addEventListener("storage", handleStorage);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      setTimeout(checkDueReminders, 0);
-    }
+    setTimeout(checkDueReminders, 0);
   });
+  window.addEventListener("focus", () => setTimeout(checkDueReminders, 0));
 
   if (DashboardData.changeEvent) {
     window.addEventListener(DashboardData.changeEvent, handleScheduleChange);
@@ -1208,6 +1616,9 @@
     changeEvent: CHANGE_EVENT,
     todoStorageKey: TODO_STORAGE_KEY,
     todoChangeEvent: TODO_CHANGE_EVENT,
+    reminderBackupKey: REMINDER_BACKUP_KEY,
+    notificationSettingsKey: NOTIFICATION_SETTINGS_KEY,
+    notificationChangeEvent: NOTIFICATION_CHANGE_EVENT,
     dateKey,
     timingLabel,
     timingLabelForTarget,
@@ -1224,6 +1635,11 @@
     setTodoCompleted,
     deleteTodo,
     clearCompletedTodos,
+    getReminderRecoveryCandidates,
+    restoreReminderBackup,
+    getDesktopNotificationStatus,
+    requestDesktopNotifications,
+    setDesktopNotificationsEnabled,
     refreshTriggers,
     checkDueReminders
   });
