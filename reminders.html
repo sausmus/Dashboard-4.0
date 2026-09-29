@@ -110,6 +110,18 @@
 
     .todo-input {
       font-size: 16px;
+      flex: 1 1 auto;
+    }
+
+    .todo-entry-row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .todo-entry-row .button {
+      flex: 0 0 auto;
+      min-width: 88px;
     }
 
     .todo-list {
@@ -777,8 +789,11 @@
   <div id="todoListView" hidden>
     <section class="section">
       <div class="section-title">New To-Do</div>
-      <input id="todoInput" class="todo-input" type="text" autocomplete="off" maxlength="500" placeholder="What do you need to do?">
-      <div class="small-note">Type a task and press Enter.</div>
+      <div class="todo-entry-row">
+        <input id="todoInput" class="todo-input" type="text" autocomplete="off" maxlength="500" placeholder="What do you need to do?">
+        <button id="addTodoButton" class="button primary" type="button">Add</button>
+      </div>
+      <div class="small-note">Press Enter or click Add.</div>
     </section>
 
     <section class="section">
@@ -829,6 +844,7 @@
   const dailyRemindersView = el("dailyRemindersView");
   const todoListView = el("todoListView");
   const todoInput = el("todoInput");
+  const addTodoButton = el("addTodoButton");
   const todoList = el("todoList");
   const todoCount = el("todoCount");
   const completedTodos = el("completedTodos");
@@ -1046,6 +1062,17 @@
     selectedStudentId = student.id;
     selectedStudentClassId = String(student.rosterClassId || "");
     studentInput.value = student.name;
+
+    // A roster selection should carry its class period with it so the teacher
+    // never has to choose the student and then manually correct the period.
+    const matchingPeriod = `class:${selectedStudentClassId}`;
+    const periodExists = [...periodSelect.options].some(option => option.value === matchingPeriod);
+    if (selectedStudentClassId && periodExists) {
+      periodSelect.value = matchingPeriod;
+      updateTimingControls();
+      updateTimingPreview();
+    }
+
     suggestions.classList.remove("visible");
     updateSelectedStudentNote();
   }
@@ -1481,6 +1508,7 @@
 
   dailyRemindersViewButton.addEventListener("click", () => setView("daily"));
   todoListViewButton.addEventListener("click", () => setView("todo"));
+  addTodoButton.addEventListener("click", addTodo);
   clearCompletedTodosButton.addEventListener("click", clearCompletedTodos);
   todoInput.addEventListener("keydown", event => {
     if (event.key === "Enter" && !event.isComposing) {

@@ -13,6 +13,8 @@
 
   const STORAGE_KEY = "teacherDashboard.classReminders.v1";
   const CHANGE_EVENT = "teacher-dashboard-reminders-changed";
+  const TODO_STORAGE_KEY = "teacherDashboard.todos.v1";
+  const TODO_CHANGE_EVENT = "teacher-dashboard-todos-changed";
   const BELL_STATE_KEY = "teacherDashboard.bellState.v1";
   const PASSING_MINUTES = 4;
   const START_OF_DAY_PASSING_MINUTES = 5;
@@ -569,6 +571,111 @@
     return completed;
   }
 
+  function normalizeTodo(item = {}) {
+    const text = String(item.text ?? item.note ?? "").trim();
+    return {
+      id: String(item.id || makeId()),
+      text,
+      source: String(item.source || "manual"),
+      createdAt: String(item.createdAt || new Date().toISOString()),
+      completedAt: String(item.completedAt || "")
+    };
+  }
+
+  function readTodos() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(TODO_STORAGE_KEY) || "{}");
+      const todos = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed.todos)
+          ? parsed.todos
+          : [];
+      return todos.map(normalizeTodo).filter(item => item.text);
+    } catch (error) {
+      console.warn("ReminderService could not load to-dos.", error);
+      return [];
+    }
+  }
+
+  function writeTodos(todos, detail = {}, { dispatch = true } = {}) {
+    const normalized = todos.map(normalizeTodo).filter(item => item.text);
+    localStorage.setItem(
+      TODO_STORAGE_KEY,
+      JSON.stringify({ version: 1, todos: normalized })
+    );
+
+    if (dispatch) {
+      window.dispatchEvent(new CustomEvent(TODO_CHANGE_EVENT, {
+        detail: {
+          todos: clone(normalized),
+          ...detail
+        }
+      }));
+    }
+
+    return clone(normalized);
+  }
+
+  function getTodos() {
+    return clone(readTodos());
+  }
+
+  function addTodo(input = {}) {
+    const text = String(input.text ?? input.note ?? "").trim();
+    if (!text) throw new Error("Enter a to-do item first.");
+
+    const todo = normalizeTodo({
+      id: makeId(),
+      text,
+      source: input.source || "manual",
+      createdAt: new Date().toISOString(),
+      completedAt: ""
+    });
+
+    const todos = readTodos();
+    todos.push(todo);
+    writeTodos(todos, { type: "todo-added", todoId: todo.id });
+    return clone(todo);
+  }
+
+  function setTodoCompleted(id, completed = true) {
+    const todoId = String(id);
+    const todos = readTodos();
+    const index = todos.findIndex(item => item.id === todoId);
+    if (index < 0) return null;
+
+    todos[index] = normalizeTodo({
+      ...todos[index],
+      completedAt: completed ? new Date().toISOString() : ""
+    });
+
+    writeTodos(todos, {
+      type: completed ? "todo-completed" : "todo-restored",
+      todoId
+    });
+    return clone(todos[index]);
+  }
+
+  function deleteTodo(id) {
+    const todoId = String(id);
+    const todos = readTodos();
+    const next = todos.filter(item => item.id !== todoId);
+    if (next.length === todos.length) return false;
+    writeTodos(next, { type: "todo-deleted", todoId });
+    return true;
+  }
+
+  function clearCompletedTodos() {
+    const todos = readTodos();
+    const completed = todos.filter(item => item.completedAt).length;
+    if (!completed) return 0;
+    writeTodos(
+      todos.filter(item => !item.completedAt),
+      { type: "completed-todos-cleared", count: completed }
+    );
+    return completed;
+  }
+
   function effectiveDue(reminder) {
     if (reminder.status === "snoozed" && reminder.snoozeUntil > 0) {
       return reminder.snoozeUntil;
@@ -987,13 +1094,28 @@
   function checkDueReminders() {
     if (!document.body) return;
 
+    // When several Teacher Dashboard pages are open, only a visible page
+    // should claim a due reminder. This prevents a background tab from
+    // "stealing" the alert from the page the teacher is actually viewing.
+    if (document.visibilityState === "hidden") return;
+
     injectAlertUI();
 
     const backdrop = document.getElementById("tdReminderBackdrop");
     if (backdrop?.classList.contains("visible")) {
-      // Renew the cross-tab claim while this tab owns the visible alert.
+      // Renew the cross-tab claim while this tab owns the visible alert. If a
+      // different visible Dashboard tab has taken ownership, dismiss this
+      // stale copy so the teacher only sees the reminder in the active tab.
       const active = currentAlertReminder();
-      if (active && active.claimOwner === INSTANCE_ID && active.claimUntil - Date.now() < CLAIM_MS / 2) {
+      if (
+        !active ||
+        ["done", "missed"].includes(active.status) ||
+        (active.claimOwner && active.claimOwner !== INSTANCE_ID && active.claimUntil > Date.now())
+      ) {
+        closeAlert();
+        return;
+      }
+      if (active.claimOwner === INSTANCE_ID && active.claimUntil - Date.now() < CLAIM_MS / 2) {
         claimReminder(active.id);
       }
       return;
@@ -1021,14 +1143,25 @@
   }
 
   function handleStorage(event) {
-    if (event.key !== STORAGE_KEY) return;
-    window.dispatchEvent(new CustomEvent(CHANGE_EVENT, {
-      detail: {
-        type: "external-storage-change",
-        reminders: getReminders()
-      }
-    }));
-    setTimeout(checkDueReminders, 0);
+    if (event.key === STORAGE_KEY) {
+      window.dispatchEvent(new CustomEvent(CHANGE_EVENT, {
+        detail: {
+          type: "external-storage-change",
+          reminders: getReminders()
+        }
+      }));
+      setTimeout(checkDueReminders, 0);
+      return;
+    }
+
+    if (event.key === TODO_STORAGE_KEY) {
+      window.dispatchEvent(new CustomEvent(TODO_CHANGE_EVENT, {
+        detail: {
+          type: "external-storage-change",
+          todos: getTodos()
+        }
+      }));
+    }
   }
 
   function handleScheduleChange() {
@@ -1056,6 +1189,11 @@
   }
 
   window.addEventListener("storage", handleStorage);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      setTimeout(checkDueReminders, 0);
+    }
+  });
 
   if (DashboardData.changeEvent) {
     window.addEventListener(DashboardData.changeEvent, handleScheduleChange);
@@ -1068,6 +1206,8 @@
   window.ReminderService = Object.freeze({
     storageKey: STORAGE_KEY,
     changeEvent: CHANGE_EVENT,
+    todoStorageKey: TODO_STORAGE_KEY,
+    todoChangeEvent: TODO_CHANGE_EVENT,
     dateKey,
     timingLabel,
     timingLabelForTarget,
@@ -1079,6 +1219,11 @@
     updateReminder,
     deleteReminder,
     clearCompleted,
+    getTodos,
+    addTodo,
+    setTodoCompleted,
+    deleteTodo,
+    clearCompletedTodos,
     refreshTriggers,
     checkDueReminders
   });

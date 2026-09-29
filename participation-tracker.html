@@ -231,6 +231,85 @@
       grid-template-columns: 1fr;
     }
 
+    .student-card.timeliness-card.selected-for-bulk {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(26,115,232,.12);
+    }
+
+    .timeliness-card .student-main {
+      padding-right: 50px;
+    }
+
+    .timeliness-select {
+      position: absolute;
+      top: 11px;
+      right: 11px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.92);
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .timeliness-select:hover { background: #f8f9fa; }
+
+    .timeliness-select input {
+      width: 18px;
+      height: 18px;
+      min-height: 0;
+      margin: 0;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
+
+    .bulk-timeliness-bar {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px solid #aecbfa;
+      border-radius: 12px;
+      background: #f5f9ff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .bulk-timeliness-bar[hidden] { display: none; }
+
+    .bulk-timeliness-copy {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .bulk-timeliness-count {
+      font-weight: 800;
+      color: var(--blue);
+    }
+
+    .bulk-timeliness-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .bulk-student-list {
+      margin: 0 0 16px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #f8f9fa;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
     .timeliness-detail {
       margin-top: 8px;
       color: var(--muted);
@@ -678,6 +757,17 @@
         <button id="exportButton" type="button">Export CSV</button>
       </div>
     </div>
+    <div id="bulkTimelinessBar" class="bulk-timeliness-bar" hidden>
+      <div class="bulk-timeliness-copy">
+        <span id="bulkTimelinessCount" class="bulk-timeliness-count">0 selected</span>
+        <span class="small-note">Use the checkboxes on student cards to record the same late assignment for several students at once.</span>
+      </div>
+      <div class="bulk-timeliness-actions">
+        <button id="selectAllTimelinessButton" type="button">Select All Shown</button>
+        <button id="clearTimelinessSelectionButton" type="button">Clear</button>
+        <button id="recordBulkLateButton" class="primary" type="button" disabled>Record Late Assignment</button>
+      </div>
+    </div>
     <div id="trackerHelp" class="small-note">Tap a student card to add one participation point. Use the − button only for corrections. Points may exceed the goal (for example, 7/5).</div>
   </div>
 
@@ -742,6 +832,26 @@
   </div>
 </div>
 
+<div id="bulkLateModal" class="modal-overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bulkLateModalTitle">
+    <div class="modal-header">
+      <div>
+        <h2 id="bulkLateModalTitle">Record Late Assignment</h2>
+        <div id="bulkLateModalSubtitle" class="small-note" style="margin-top:5px;"></div>
+      </div>
+      <button id="closeBulkLateModal" class="close-button" type="button" aria-label="Close bulk timeliness window">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="bulkLateStudentList" class="bulk-student-list"></div>
+      <label class="control-label" for="bulkLateEntryInput">Late assignment / note</label>
+      <input id="bulkLateEntryInput" type="text" maxlength="180" placeholder="e.g. Business Letter — submitted late" autocomplete="off">
+      <div class="button-row" style="margin-top:10px;">
+        <button id="confirmBulkLateButton" class="primary" type="button">Record for Selected Students</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast" aria-live="polite"></div>
 
 <script src="shared/dashboard-data.js"></script>
@@ -776,6 +886,7 @@
   let uiState = loadUIState();
   let currentView = "participation";
   let lateModalStudent = null;
+  const selectedTimelinessStudents = new Set();
 
   const el = id => document.getElementById(id);
   const periodButtons = el("periodButtons");
@@ -810,12 +921,23 @@
   const pulseProgressLabel = el("pulseProgressLabel");
   const pulseZeroLabel = el("pulseZeroLabel");
   const trackerHelp = el("trackerHelp");
+  const bulkTimelinessBar = el("bulkTimelinessBar");
+  const bulkTimelinessCount = el("bulkTimelinessCount");
+  const selectAllTimelinessButton = el("selectAllTimelinessButton");
+  const clearTimelinessSelectionButton = el("clearTimelinessSelectionButton");
+  const recordBulkLateButton = el("recordBulkLateButton");
   const lateModal = el("lateModal");
   const lateModalTitle = el("lateModalTitle");
   const lateModalSubtitle = el("lateModalSubtitle");
   const lateModalSummary = el("lateModalSummary");
   const lateEntryInput = el("lateEntryInput");
   const lateHistory = el("lateHistory");
+  const bulkLateModal = el("bulkLateModal");
+  const bulkLateModalTitle = el("bulkLateModalTitle");
+  const bulkLateModalSubtitle = el("bulkLateModalSubtitle");
+  const bulkLateStudentList = el("bulkLateStudentList");
+  const bulkLateEntryInput = el("bulkLateEntryInput");
+  const confirmBulkLateButton = el("confirmBulkLateButton");
 
   function activeTermId() {
     return currentView === "timeliness"
@@ -926,6 +1048,7 @@
       if (classInfo.id === selected) button.classList.add("selected");
 
       button.addEventListener("click", () => {
+        selectedTimelinessStudents.clear();
         DashboardData.setCurrentClass(classInfo.id);
         buildPeriodButtons();
         render();
@@ -1073,10 +1196,42 @@
     sortSelect.value = options.some(([optionValue]) => optionValue === value) ? value : "roster";
   }
 
+  function updateBulkTimelinessUI() {
+    const timelinessView = currentView === "timeliness";
+    bulkTimelinessBar.hidden = !timelinessView;
+    if (!timelinessView) return;
+
+    const count = selectedTimelinessStudents.size;
+    bulkTimelinessCount.textContent = `${count} selected`;
+    recordBulkLateButton.disabled = count === 0;
+    clearTimelinessSelectionButton.disabled = count === 0;
+  }
+
+  function clearTimelinessSelection({ rerender = true } = {}) {
+    selectedTimelinessStudents.clear();
+    updateBulkTimelinessUI();
+    if (rerender && currentView === "timeliness") renderStudents();
+  }
+
+  function toggleTimelinessStudent(studentId, selected) {
+    const id = String(studentId);
+    if (selected) selectedTimelinessStudents.add(id);
+    else selectedTimelinessStudents.delete(id);
+    updateBulkTimelinessUI();
+  }
+
   function renderStudents() {
     const query = searchInput.value.trim().toLocaleLowerCase();
     let students = currentView === "timeliness" ? timelinessRoster() : rosterWithScores();
     const goal = currentView === "participation" ? activeGoal() : 0;
+
+    if (currentView === "timeliness") {
+      const rosterIds = new Set(students.map(student => String(student.id)));
+      [...selectedTimelinessStudents].forEach(id => {
+        if (!rosterIds.has(id)) selectedTimelinessStudents.delete(id);
+      });
+      updateBulkTimelinessUI();
+    }
 
     if (query) students = students.filter(student => student.name.toLocaleLowerCase().includes(query));
 
@@ -1128,6 +1283,10 @@
       if (currentView === "timeliness") {
         card.classList.add("timeliness-card");
         if (student.lateCount === 0) card.classList.add("timeliness-clean");
+
+        const isSelected = selectedTimelinessStudents.has(String(student.id));
+        if (isSelected) card.classList.add("selected-for-bulk");
+
         score.textContent = `${student.score} / ${student.startingPoints}`;
         const detail = document.createElement("div");
         detail.className = "timeliness-detail";
@@ -1137,7 +1296,25 @@
         main.setAttribute("aria-label", `Open Timeliness record for ${student.name}. ${student.lateCount} late assignments.`);
         main.append(name, score, detail);
         main.addEventListener("click", () => openLateModal(student));
-        card.append(main);
+
+        const selectLabel = document.createElement("label");
+        selectLabel.className = "timeliness-select";
+        selectLabel.title = `Select ${student.name} for a bulk late assignment`;
+        selectLabel.addEventListener("click", event => event.stopPropagation());
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = isSelected;
+        checkbox.dataset.timelinessStudentId = String(student.id);
+        checkbox.setAttribute("aria-label", `Select ${student.name} for bulk Timeliness entry`);
+        checkbox.addEventListener("click", event => event.stopPropagation());
+        checkbox.addEventListener("change", () => {
+          toggleTimelinessStudent(student.id, checkbox.checked);
+          card.classList.toggle("selected-for-bulk", checkbox.checked);
+        });
+
+        selectLabel.appendChild(checkbox);
+        card.append(main, selectLabel);
       } else {
         if (student.points === 0) card.classList.add("zero");
         if (student.points >= goal) card.classList.add("complete");
@@ -1249,6 +1426,78 @@
     }
   }
 
+  function selectedTimelinessRoster() {
+    const selected = selectedTimelinessStudents;
+    return timelinessRoster().filter(student => selected.has(String(student.id)));
+  }
+
+  function openBulkLateModal() {
+    const students = selectedTimelinessRoster();
+    if (!students.length) {
+      showToast("Select at least one student");
+      return;
+    }
+
+    const count = students.length;
+    bulkLateModalTitle.textContent = `Record Late Assignment for ${count} Student${count === 1 ? "" : "s"}`;
+    bulkLateModalSubtitle.textContent = `${classLabel(currentPeriod())} · ${DashboardData.getTimelinessTerms().find(term => term.id === activeTermId())?.label || activeTermId()}`;
+    bulkLateStudentList.textContent = students.map(student => student.name).join(" • ");
+    confirmBulkLateButton.textContent = `Record for ${count} Student${count === 1 ? "" : "s"}`;
+    bulkLateEntryInput.value = "";
+    openModal(bulkLateModal);
+    window.setTimeout(() => bulkLateEntryInput.focus(), 0);
+  }
+
+  function addBulkLateEntry() {
+    const students = selectedTimelinessRoster();
+    if (!students.length) {
+      closeModal(bulkLateModal);
+      showToast("No students are selected");
+      return;
+    }
+
+    const note = bulkLateEntryInput.value.trim();
+    if (!note) {
+      showToast("Enter the late assignment or a short note");
+      bulkLateEntryInput.focus();
+      return;
+    }
+
+    try {
+      const period = currentPeriod();
+      const termId = activeTermId();
+      const added = DashboardData.addTimelinessEntryForStudents(
+        period,
+        students.map(student => student.id),
+        note,
+        termId
+      );
+
+      uiState.undoStack.push({
+        type: "timeliness-bulk-add",
+        period,
+        termId,
+        note,
+        entries: added.map(item => ({
+          studentId: item.studentId,
+          studentName: item.studentName,
+          entryId: item.entry.id
+        }))
+      });
+      if (uiState.undoStack.length > 50) uiState.undoStack.splice(0, uiState.undoStack.length - 50);
+      saveUIState();
+
+      const count = added.length;
+      selectedTimelinessStudents.clear();
+      closeModal(bulkLateModal);
+      render();
+      showToast(`Late assignment recorded for ${count} student${count === 1 ? "" : "s"}`);
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || "Late assignment could not be recorded");
+    }
+  }
+
   function render() {
     participationViewButton.classList.toggle("selected", currentView === "participation");
     timelinessViewButton.classList.toggle("selected", currentView === "timeliness");
@@ -1263,7 +1512,7 @@
       termHelp.textContent = policy.graceEnabled
         ? `The first recorded late submission is a grace occurrence. Each additional late assignment deducts ${policy.deductionPerLateSubmission} point, regardless of how late it is.`
         : `Every recorded late assignment deducts ${policy.deductionPerLateSubmission} point, regardless of how late it is.`;
-      trackerHelp.textContent = "Tap a student card to record a late assignment or review that student’s Timeliness history. Blue tiles have no late assignments recorded yet.";
+      trackerHelp.textContent = "Tap a student card to open that student’s Timeliness history. Use the checkbox in the upper-right of cards to select multiple students and record the same late assignment for all of them. Blue tiles have no late assignments recorded yet.";
       el("settingsButton").textContent = "⚙ Timeliness Settings";
       syncGradesButton.textContent = "Sync Timeliness Grades";
     } else {
@@ -1278,6 +1527,7 @@
     }
 
     renderPulse();
+    updateBulkTimelinessUI();
     renderStudents();
     undoButton.disabled = uiState.undoStack.length === 0;
     el("exportButton").disabled = currentRoster().length === 0;
@@ -1729,6 +1979,13 @@
       DashboardData.removeTimelinessEntry(action.period, action.studentId || action.studentName, action.entryId, action.termId);
       if (lateModalStudent && lateModalStudent.id === action.studentId && lateModal.classList.contains("visible")) renderLateModal();
       showToast(`Undid late entry for ${action.studentName}`);
+    } else if (action.type === "timeliness-bulk-add") {
+      const removed = DashboardData.removeTimelinessEntries(
+        action.period,
+        (action.entries || []).map(item => ({ studentId: item.studentId, entryId: item.entryId })),
+        action.termId
+      );
+      showToast(`Undid late entry for ${removed} student${removed === 1 ? "" : "s"}`);
     } else {
       DashboardData.setParticipationPoints(
         action.period,
@@ -1795,6 +2052,7 @@
   }
 
   termSelect.addEventListener("change", () => {
+    selectedTimelinessStudents.clear();
     if (currentView === "timeliness") DashboardData.setActiveTimelinessTerm(termSelect.value);
     else DashboardData.setActiveParticipationTerm(termSelect.value);
     buildTerms();
@@ -1803,6 +2061,7 @@
 
   participationViewButton.addEventListener("click", () => {
     if (currentView === "participation") return;
+    selectedTimelinessStudents.clear();
     currentView = "participation";
     searchInput.value = "";
     buildTerms();
@@ -1810,6 +2069,7 @@
   });
   timelinessViewButton.addEventListener("click", () => {
     if (currentView === "timeliness") return;
+    selectedTimelinessStudents.clear();
     currentView = "timeliness";
     searchInput.value = "";
     buildTerms();
@@ -1818,6 +2078,16 @@
 
   sortSelect.addEventListener("change", renderStudents);
   searchInput.addEventListener("input", renderStudents);
+  selectAllTimelinessButton.addEventListener("click", () => {
+    studentGrid.querySelectorAll('input[data-timeliness-student-id]').forEach(checkbox => {
+      checkbox.checked = true;
+      selectedTimelinessStudents.add(String(checkbox.dataset.timelinessStudentId));
+      checkbox.closest(".student-card")?.classList.add("selected-for-bulk");
+    });
+    updateBulkTimelinessUI();
+  });
+  clearTimelinessSelectionButton.addEventListener("click", () => clearTimelinessSelection());
+  recordBulkLateButton.addEventListener("click", openBulkLateModal);
   el("settingsButton").addEventListener("click", () => {
     window.location.href = currentView === "timeliness"
       ? "settings.html#timelinessGradeSyncPanel"
@@ -1830,13 +2100,18 @@
   lateEntryInput.addEventListener("keydown", event => {
     if (event.key === "Enter") { event.preventDefault(); addLateEntry(); }
   });
+  el("closeBulkLateModal").addEventListener("click", () => closeModal(bulkLateModal));
+  confirmBulkLateButton.addEventListener("click", addBulkLateEntry);
+  bulkLateEntryInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") { event.preventDefault(); addBulkLateEntry(); }
+  });
   publishAssignmentButton.addEventListener("click", publishParticipationAssignments);
   syncDraftGradesButton.addEventListener("click", syncDraftParticipationGrades);
   returnGradesButton.addEventListener("click", returnParticipationGrades);
   undoButton.addEventListener("click", undoLast);
   el("exportButton").addEventListener("click", exportCsv);
 
-  [syncModal, lateModal].forEach(modal => {
+  [syncModal, lateModal, bulkLateModal].forEach(modal => {
     modal.addEventListener("click", event => {
       if (event.target === modal) closeModal(modal);
     });
@@ -1844,6 +2119,7 @@
 
   document.addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
+    if (bulkLateModal.classList.contains("visible")) { closeModal(bulkLateModal); return; }
     if (lateModal.classList.contains("visible")) { closeModal(lateModal); return; }
     if (syncModal.classList.contains("visible")) closeModal(syncModal);
   });

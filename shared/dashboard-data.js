@@ -77,6 +77,7 @@
     studentPicker: "studentNamePicker_v1",
     participationUI: "participationTracker.ui.v2",
     reminders: "teacherDashboard.classReminders.v1",
+    todos: "teacherDashboard.todos.v1",
     bellState: "teacherDashboard.bellState.v1"
   });
 
@@ -2272,6 +2273,99 @@
     return clone(entry);
   }
 
+  function addTimelinessEntryForStudents(classId, studentRefs, note, termId = getActiveTimelinessTermId()) {
+    const classKey = String(classId);
+    const termKey = String(termId);
+    const cleanNote = String(note ?? "").trim();
+    if (!cleanNote) throw new Error("Enter the late assignment or a short note.");
+
+    const refs = Array.isArray(studentRefs) ? studentRefs : [];
+    if (!refs.length) throw new Error("Select at least one student.");
+
+    const data = load();
+    const term = data.timeliness.terms[termKey];
+    if (!term) throw new Error(`Unknown timeliness term: ${termKey}`);
+
+    const seen = new Set();
+    const students = refs
+      .map(ref => resolveStudentFromData(data, classKey, ref))
+      .filter(student => {
+        if (!student?.id || !student?.name || seen.has(student.id)) return false;
+        seen.add(student.id);
+        return true;
+      });
+
+    if (!students.length) throw new Error("No valid students were selected.");
+
+    const now = new Date().toISOString();
+    const seed = Date.now();
+    const added = students.map((student, index) => {
+      const current = term.records[classKey][student.id] || {
+        studentId: student.id,
+        name: student.name,
+        entries: [],
+        updatedAt: ""
+      };
+      const entry = {
+        id: `late:${seed}:${index}:${Math.random().toString(36).slice(2, 8)}`,
+        note: cleanNote,
+        createdAt: now
+      };
+      current.studentId = student.id;
+      current.name = student.name;
+      current.entries.push(entry);
+      current.updatedAt = now;
+      term.records[classKey][student.id] = current;
+      return { studentId: student.id, studentName: student.name, entry: clone(entry) };
+    });
+
+    save(data, {
+      type: "timeliness-entries-added",
+      classId: classKey,
+      termId: termKey,
+      studentIds: added.map(item => item.studentId),
+      count: added.length
+    });
+
+    return clone(added);
+  }
+
+  function removeTimelinessEntries(classId, removals, termId = getActiveTimelinessTermId()) {
+    const classKey = String(classId);
+    const termKey = String(termId);
+    const data = load();
+    const term = data.timeliness.terms[termKey];
+    if (!term) throw new Error(`Unknown timeliness term: ${termKey}`);
+
+    const items = Array.isArray(removals) ? removals : [];
+    let removed = 0;
+    const now = new Date().toISOString();
+
+    items.forEach(item => {
+      const student = resolveStudentFromData(data, classKey, item?.studentId ?? item?.studentRef);
+      if (!student?.id) return;
+      const record = term.records[classKey]?.[student.id];
+      if (!record) return;
+      const before = record.entries.length;
+      record.entries = record.entries.filter(entry => String(entry.id) !== String(item?.entryId || ""));
+      if (record.entries.length === before) return;
+      removed += 1;
+      record.updatedAt = now;
+      if (!record.entries.length) delete term.records[classKey][student.id];
+    });
+
+    if (removed) {
+      save(data, {
+        type: "timeliness-entries-removed",
+        classId: classKey,
+        termId: termKey,
+        count: removed
+      });
+    }
+
+    return removed;
+  }
+
   function removeTimelinessEntry(classId, studentRef, entryId, termId = getActiveTimelinessTermId()) {
     const classKey = String(classId);
     const termKey = String(termId);
@@ -3065,7 +3159,9 @@
       calculateTimelinessScore,
       getTimelinessRecord,
       addTimelinessEntry,
+      addTimelinessEntryForStudents,
       removeTimelinessEntry,
+      removeTimelinessEntries,
       getTimelinessForClass,
       getTimelinessGradeSync,
       setTimelinessGradeSyncSettings,
