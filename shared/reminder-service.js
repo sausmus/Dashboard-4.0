@@ -812,12 +812,19 @@
   function getDesktopNotificationStatus() {
     const apiSupported = notificationApiSupported();
     const secure = window.isSecureContext === true;
+    const localFile = window.location?.protocol === "file:";
     const permission = apiSupported ? Notification.permission : "unsupported";
     const preferenceEnabled = readNotificationPreference();
-    const enabled = apiSupported && secure && permission === "granted" && preferenceEnabled;
+    // A local file can report itself as a secure context in Chromium, but
+    // notification permission belongs to the web origin that will actually
+    // run Teacher Dashboard. Never request/store notification permission for
+    // file:// testing; wait until the deployed HTTPS site is open instead.
+    const usableContext = apiSupported && secure && !localFile;
+    const enabled = usableContext && permission === "granted" && preferenceEnabled;
 
     let state = "disabled";
     if (!apiSupported) state = "unsupported";
+    else if (localFile) state = "local-file";
     else if (!secure) state = "insecure";
     else if (permission === "denied") state = "blocked";
     else if (enabled) state = "enabled";
@@ -825,9 +832,10 @@
     else state = "needs-permission";
 
     return {
-      supported: apiSupported && secure,
+      supported: usableContext,
       apiSupported,
       secure,
+      localFile,
       permission,
       preferenceEnabled,
       enabled,
@@ -836,8 +844,9 @@
   }
 
   async function requestDesktopNotifications() {
-    if (!notificationApiSupported() || window.isSecureContext !== true) {
-      return getDesktopNotificationStatus();
+    const initialStatus = getDesktopNotificationStatus();
+    if (!initialStatus.supported) {
+      return initialStatus;
     }
 
     let permission = Notification.permission;
