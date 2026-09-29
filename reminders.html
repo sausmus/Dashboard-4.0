@@ -342,6 +342,97 @@
       align-items: end;
     }
 
+    .daily-setup-section {
+      padding: 16px 18px;
+    }
+
+    .daily-setup-section .section-title {
+      margin-bottom: 10px;
+    }
+
+    .daily-setup-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 0;
+      align-items: stretch;
+    }
+
+    .daily-setup-item {
+      min-width: 0;
+      padding: 2px 18px 2px 0;
+    }
+
+    .daily-setup-item + .daily-setup-item {
+      padding: 2px 0 2px 18px;
+      border-left: 1px solid var(--border);
+    }
+
+    .daily-setup-label {
+      margin-bottom: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .daily-setup-control-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(132px, 168px);
+      gap: 12px;
+      align-items: end;
+    }
+
+    .compact-schedule-status {
+      min-height: 38px;
+      font-size: 14px;
+    }
+
+    .compact-field-label {
+      margin-bottom: 4px !important;
+      font-size: 10px !important;
+    }
+
+    select.compact-select {
+      min-height: 38px;
+      padding: 7px 9px;
+      border-radius: 9px;
+      font-size: 14px;
+    }
+
+    .daily-setup-note {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .compact-notification-setting {
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .compact-notification-setting .notification-setting-copy p {
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .compact-notification-setting .notification-help {
+      margin-top: 5px;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .compact-notification-setting .notification-status {
+      min-height: 30px;
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .compact-notification-setting .button.compact {
+      min-height: 32px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
     .schedule-status {
       min-height: 44px;
       display: flex;
@@ -741,9 +832,20 @@
       transform: translate(-50%, 0);
     }
 
+    @media (max-width: 820px) {
+      .daily-setup-grid { grid-template-columns: 1fr; }
+      .daily-setup-item { padding: 0 0 12px; }
+      .daily-setup-item + .daily-setup-item {
+        padding: 12px 0 0;
+        border-left: 0;
+        border-top: 1px solid var(--border);
+      }
+    }
+
     @media (max-width: 720px) {
       .form-grid,
       .schedule-row { grid-template-columns: 1fr; }
+      .daily-setup-control-row { grid-template-columns: 1fr minmax(120px, 150px); }
       .timing-grid,
       .privacy-grid { grid-template-columns: 1fr; }
       .custom-timing-row { grid-template-columns: 1fr; }
@@ -762,6 +864,9 @@
       .button-row .button { flex: 1; }
       .notification-setting { align-items: flex-start; flex-direction: column; }
       .notification-controls { width: 100%; justify-content: space-between; }
+      .daily-setup-section { padding: 14px 15px; }
+      .daily-setup-control-row { grid-template-columns: 1fr; }
+      .compact-notification-setting .notification-controls { width: 100%; }
       .notification-permission-actions { flex-direction: column-reverse; }
       .notification-permission-actions .button { width: 100%; }
     }
@@ -785,40 +890,41 @@
   </div>
 
   <div id="dailyRemindersView">
-  <section class="section">
-    <div class="section-title">Today's Bell Schedule</div>
-    <div class="schedule-row">
-      <div id="scheduleStatus" class="schedule-status">
-        <span class="status-dot"></span>
-        <span>Loading schedule…</span>
+  <section class="section daily-setup-section">
+    <div class="section-title">Today's Setup</div>
+    <div class="daily-setup-grid">
+      <div class="daily-setup-item">
+        <div class="daily-setup-label">Bell Schedule</div>
+        <div class="daily-setup-control-row">
+          <div id="scheduleStatus" class="schedule-status compact-schedule-status">
+            <span class="status-dot"></span>
+            <span>Loading schedule…</span>
+          </div>
+          <div class="schedule-mode-wrap">
+            <label class="field-label compact-field-label" for="scheduleMode">Override</label>
+            <select id="scheduleMode" class="compact-select">
+              <option value="auto">Auto</option>
+              <option value="regular">Regular</option>
+              <option value="lateStart">Late Start</option>
+              <option value="minimum">Minimum Day</option>
+            </select>
+          </div>
+        </div>
+        <div class="daily-setup-note">Auto follows your saved school calendar.</div>
       </div>
 
-      <div>
-        <label class="field-label" for="scheduleMode">Schedule Override</label>
-        <select id="scheduleMode">
-          <option value="auto">Auto</option>
-          <option value="regular">Regular</option>
-          <option value="lateStart">Late Start</option>
-          <option value="minimum">Minimum Day</option>
-        </select>
-      </div>
-    </div>
-    <div class="small-note">
-      Auto follows Wednesday Late Start and the minimum-day dates saved in Dashboard Settings. An override here also changes Bell Countdown for today.
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="section-title">Desktop Notifications</div>
-    <div class="notification-setting">
-      <div class="notification-setting-copy">
-        <strong>See reminders while you work in another browser tab.</strong>
-        <p>When Teacher Dashboard is open, Chrome can show a desktop notification for a due reminder. Clicking it brings Teacher Dashboard back to the front.</p>
-        <div id="notificationHelp" class="notification-help"></div>
-      </div>
-      <div class="notification-controls">
-        <span id="notificationStatus" class="notification-status">Checking…</span>
-        <button id="notificationToggleButton" class="button secondary compact" type="button">Enable</button>
+      <div class="daily-setup-item notification-setup-item">
+        <div class="daily-setup-label">Desktop Notifications</div>
+        <div class="notification-setting compact-notification-setting">
+          <div class="notification-setting-copy">
+            <p>Show due reminders while you work in another browser tab.</p>
+            <div id="notificationHelp" class="notification-help"></div>
+          </div>
+          <div class="notification-controls">
+            <span id="notificationStatus" class="notification-status">Checking…</span>
+            <button id="notificationToggleButton" class="button secondary compact" type="button">Enable</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -1088,15 +1194,25 @@
       renderNotificationSetting();
 
       if (status.state === "enabled") {
-        showToast("Desktop reminders enabled");
+        const testSent = ReminderService.sendDesktopNotificationTest();
+        notificationHelp.textContent = testSent
+          ? "A test notification was sent. Desktop notifications will appear while Teacher Dashboard is open but not currently visible. If the test does not appear on a Mac, check System Settings → Notifications → Google Chrome."
+          : "Chrome granted notification permission, but the test notification could not be created. Check your browser and operating-system notification settings.";
+        showToast(testSent ? "Desktop reminders enabled — test sent" : "Desktop reminders enabled");
       } else if (status.state === "blocked") {
-        showToast("Notifications were blocked in Chrome");
+        notificationHelp.textContent = "Chrome still reports notifications as blocked for this site. Click the site controls next to the address bar, set Notifications to Allow, then reload Teacher Dashboard.";
+        showToast("Chrome still reports notifications as blocked");
+      } else if (status.permission === "default" || status.livePermission === "default" || status.permissionsApiState === "prompt") {
+        notificationHelp.textContent = "Chrome still reports notification permission as Ask/Prompt. Use the site controls next to the address bar, set Notifications to Allow, then try again.";
+        showToast("Chrome still reports notification permission as Ask");
       } else {
+        notificationHelp.textContent = `Chrome did not grant notification permission. Browser result: ${status.livePermission || status.permission || "unknown"}.`;
         showToast("Desktop reminders were not enabled");
       }
     } catch (error) {
       console.error(error);
       renderNotificationSetting();
+      notificationHelp.textContent = "Desktop reminders could not be enabled. Check Chrome's site notification permission and your operating-system notification settings.";
       showToast("Desktop reminders could not be enabled");
     }
   }
